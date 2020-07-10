@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="MoePacketAPI">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/../MoePacketAPI/MoePacketAPI.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

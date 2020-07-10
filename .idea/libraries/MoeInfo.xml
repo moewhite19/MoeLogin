@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="MoeInfo">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/../MoeInfo" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="file://$PROJECT_DIR$/../MoeInfo/src" />
+    </SOURCES>
+    <jarDirectory url="file://$PROJECT_DIR$/../MoeInfo" recursive="false" />
+  </library>
+</component>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="JAVA_MODULE" version="4">
+  <component name="FacetManager">
+    <facet type="minecraft" name="Minecraft">
+      <configuration>
+        <autoDetectTypes>
+          <platformType>PAPER</platformType>
+        </autoDetectTypes>
+      </configuration>
+    </facet>
+  </component>
+  <component name="NewModuleRootManager" inherit-compiler-output="true">
+    <exclude-output />
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/res" type="java-resource" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="MoeTP" level="project" />
+    <orderEntry type="library" name="MMOCore" level="project" />
+    <orderEntry type="library" name="MoeInfo" level="project" />
+    <orderEntry type="library" name="MoeQbot" level="project" />
+    <orderEntry type="library" name="MoePacketAPI" level="project" />
+    <orderEntry type="library" name="patched_1.16.1" level="application" />
+  </component>
+</module>

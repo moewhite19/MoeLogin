@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="MoeTP">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/../MoeTP" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="file://$PROJECT_DIR$/../MoeTP/src" />
+    </SOURCES>
+    <jarDirectory url="file://$PROJECT_DIR$/../MoeTP" recursive="false" />
+  </library>
+</component>

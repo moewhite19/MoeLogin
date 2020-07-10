@@ -1,0 +1,19 @@
+name: MoeLogin
+main: cn.whiteg.moeLogin.MoeLogin
+version: 1.1
+author: MoeWhite
+depend: [MMOCore]
+softdepend: [ProtocolLib , FastLogin]
+commands:
+  moelogin:
+    description: The is MoeLogin Command
+    aliases: ['ml']
+
+  ban:
+    description: The is MoeLogin Command
+
+  premium:
+    description: toggle Authenticate
+
+  yggdrasil:
+    description: set Yggdrasil S
