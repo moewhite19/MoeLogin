@@ -1,0 +1,44 @@
+ver: 5
+debug: false
+#保存玩家ID，如果下次进入服务器时ID一致自动登录
+AutoLogin: false
+#注册确认行为
+RegisterVerification: false
+#防止死亡的玩家发送聊天和指令(防止某些情况假人测压能在未登陆的情况下发送聊天和指令
+AntiDeathHandle: false
+#无需登录的IP
+#NoLoginIp: '127.0.0.1'
+
+#注册后控制台执行指令
+RegisteredCommands:
+  - 'say %player% 已注册'
+
+#登录后控制台执行指令
+LoginCommands:
+#  - ''
+
+#新玩家加入时
+NewPlayerJoin:
+  #阻止新玩家
+  DisallowPlayer: false
+  DisallowMessage: '阁下没有加入白名单'
+
+#正版自动登录
+Authenticate:
+  enable: false
+  #正版自动注册
+  autoRegister: false
+  #默认正版登录
+  defaultAuthenticate: false
+  #默认外置登录(去掉注释启用
+  #defaultYggdrasil: 'LittleSkin'
+  #外置登录服务URL
+  Yggdrasil:
+    LittleSkin: 'https://mcskin.littleservice.cn/api/yggdrasil/sessionserver/session/minecraft/'
+    Blessing: 'https://skin.prinzeugen.net/api/yggdrasil/sessionserver/session/minecraft/'
+#允许跨协议版本号
+ViaVersion:
+  #- 735 #1.16
+  #- 736 #1.16.1
+  #- 751 #1.16.2
+  #- 753 #1.16.3
