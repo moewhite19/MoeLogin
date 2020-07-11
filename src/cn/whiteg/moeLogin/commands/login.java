@@ -25,7 +25,7 @@ public class login extends CommandInterface {
                 if(pl== null){
                     sender.sendMessage("对方已登录");
                 }else {
-                    pl.Logined();
+                    pl.onLogined();
                     sender.sendMessage("已为" + player.getDisplayName() + "登录");
                 }
             }else {

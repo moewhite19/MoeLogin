@@ -38,7 +38,8 @@ public class LoginListener implements Listener {
         }
     }
 
-/*    @EventHandler(priority = EventPriority.LOWEST)
+/* //这种好像没法自动登录
+   @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerJoin(PlayerLoginEvent event) {
         Player player = event.getPlayer();
         if (hasLogin(player)){
@@ -63,7 +64,8 @@ public class LoginListener implements Listener {
         } else {
             event.getPlayer().sendMessage(" §b阁下已自动登录");
         }
-    }*/
+    }
+    */
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onAsyLogin(AsyncPlayerPreLoginEvent event) {

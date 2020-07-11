@@ -63,14 +63,14 @@ public class PlayerLogin {
         LoginManage.noLogin.remove(player.getUniqueId());
     }
 
-    public boolean Login(String passwd) {
+    public boolean hasLogin(String passwd) {
         if (isReg){
             if (passwd.length() < 6){
                 player.sendMessage(loginfallmsg);
                 return false;
             } else {
                 if (LoginManage.hasPassword(dc,passwd)){
-                    Logined();
+                    onLogined();
                 } else {
                     player.sendMessage("§b密码错误");
                 }
@@ -81,7 +81,7 @@ public class PlayerLogin {
         return false;
     }
 
-    public void Logined() {
+    public void onLogined() {
         remove();
         PlayerLoginEvent loginEvent = new PlayerLoginEvent(player);
         Bukkit.getPluginManager().callEvent(loginEvent);
@@ -137,7 +137,7 @@ public class PlayerLogin {
         sendCommand(commands);
 
         dc.save();
-        Logined();
+        onLogined();
     }
 
     public void Chat(String msg) {
@@ -146,7 +146,7 @@ public class PlayerLogin {
 
     public void SendCommand(String msg) {
         if (isReg){
-            if (Login(msg)){
+            if (hasLogin(msg)){
                 player.sendMessage("§b已登录");
                 PlayerLoginEvent loginEvent = new PlayerLoginEvent(player);
                 Bukkit.getPluginManager().callEvent(loginEvent);

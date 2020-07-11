@@ -5,8 +5,9 @@ import cn.whiteg.mmocore.MMOCore;
 import cn.whiteg.moeLogin.event.PlayerLoginEvent;
 import cn.whiteg.moeLogin.listener.AuthenticateListener;
 import cn.whiteg.moeLogin.utils.PasswordUtils;
-import cn.whiteg.moepacketapi.MoePacketAPI;
+import net.minecraft.server.v1_16_R1.NetworkManager;
 import org.bukkit.Bukkit;
+import org.bukkit.craftbukkit.v1_16_R1.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
@@ -31,28 +32,40 @@ public class LoginManage {
 
     //检查是否自动登录
     public static boolean hasLogin(Player player) {
-        if (player == null) return false;
-        AuthenticateListener.LoginSession loginSession = MoeLogin.plugin.getAuthenticateListener().getSessionMap().remove(MoePacketAPI.getInstance().getPlayerPacketManage().getNetworkManage(player));
-        DataCon dc = MMOCore.getPlayerData(player);
-
-        if ((loginSession != null && loginSession.isPass())){
-            if (Setting.DEBUG){
-                MoeLogin.logger.info("玩家加入会话ID为: " + player.getName());
-                if (loginSession != null){
-                    MoeLogin.logger.info("会话验证: " + loginSession.isPass());
+        try{
+            NetworkManager network = ((CraftPlayer) player).getHandle().networkManager;
+            AuthenticateListener authListener = MoeLogin.plugin.getAuthenticateListener();
+            if (authListener != null){
+                AuthenticateListener.LoginSession loginSession = MoeLogin.plugin.getAuthenticateListener().getSessionMap().remove(network);
+                DataCon dc = MMOCore.getPlayerData(player);
+                if ((loginSession != null)){
+                    if (loginSession.isPass()){
+                        if (Setting.DEBUG){
+                            MoeLogin.logger.info("玩家加入会话ID为: " + player.getName());
+                            if (loginSession != null){
+                                MoeLogin.logger.info("会话验证: " + loginSession.isPass());
+                            }
+                        }
+                        //正版登录过标记正版验证
+                        if (loginSession.getYggdrasil() == null && dc != null){
+                            boolean b = dc.getConfig().getBoolean("Authenticate.Success",false);
+                            if (!b){
+                                dc.set("Authenticate.Success",true);
+                            }
+                        }
+                        //标记最近登录时间
+                        if (dc != null){
+                            dc.set("Player.login_time",System.currentTimeMillis());
+                        }
+                        return true;
+                    } else {
+                        MoeLogin.plugin.getLogger().warning("玩家" + loginSession.getGameProfile().getName() + "会话验证没有完成，但是还是尝试在服务器登录");
+                        ((CraftPlayer) player).disconnect("登录失败");
+                    }
                 }
             }
-            //正版登录过标记正版验证
-            if (loginSession.getYggdrasil() == null && dc != null){
-                boolean b = dc.getConfig().getBoolean("Authenticate.Success",false);
-                if (!b){
-                    dc.set("Authenticate.Success",true);
-                }
-            }
-            if (dc != null){
-                dc.set("Player.login_time",System.currentTimeMillis());
-            }
-            return true;
+        }catch (Exception e){
+            e.printStackTrace();
         }
 
         noLogin.put(player.getUniqueId(),new PlayerLogin(player));
