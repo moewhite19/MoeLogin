@@ -6,12 +6,10 @@ import cn.whiteg.moeLogin.event.PlayerLoginEvent;
 import cn.whiteg.moeLogin.listener.AuthenticateListener;
 import cn.whiteg.moeLogin.utils.PasswordUtils;
 import cn.whiteg.moepacketapi.MoePacketAPI;
-import io.netty.channel.Channel;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
-import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,8 +31,9 @@ public class LoginManage {
 
     //检查是否自动登录
     public static boolean hasLogin(Player player) {
-        AuthenticateListener.LoginSession loginSession;
-        loginSession = MoeLogin.plugin.getAuthenticateListener().getSessionMap().remove(MoePacketAPI.getInstance().getPlayerPacketManage().getNetworkManage(player));
+        if (player == null) return false;
+        AuthenticateListener.LoginSession loginSession = MoeLogin.plugin.getAuthenticateListener().getSessionMap().remove(MoePacketAPI.getInstance().getPlayerPacketManage().getNetworkManage(player));
+        DataCon dc = MMOCore.getPlayerData(player);
 
         if ((loginSession != null && loginSession.isPass())){
             if (Setting.DEBUG){
@@ -44,12 +43,14 @@ public class LoginManage {
                 }
             }
             //正版登录过标记正版验证
-            if (loginSession.getYggdrasil() == null){
-                DataCon dc = MMOCore.getPlayerData(player);
+            if (loginSession.getYggdrasil() == null && dc != null){
                 boolean b = dc.getConfig().getBoolean("Authenticate.Success",false);
                 if (!b){
                     dc.set("Authenticate.Success",true);
                 }
+            }
+            if (dc != null){
+                dc.set("Player.login_time",System.currentTimeMillis());
             }
             return true;
         }

@@ -31,11 +31,19 @@ import static cn.whiteg.moeLogin.LoginManage.*;
 public class LoginListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
-    public void onPlayerJoin(PlayerLoginEvent event) {
+    public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        DataCon dc = MMOCore.getPlayerData(player);
         if (hasLogin(player)){
             MoeLogin.console.sendMessage(player.getName() + "§b已自动登录");
+        }
+    }
+
+/*    @EventHandler(priority = EventPriority.LOWEST)
+    public void onPlayerJoin(PlayerLoginEvent event) {
+        Player player = event.getPlayer();
+        if (hasLogin(player)){
+            MoeLogin.console.sendMessage(player.getName() + "§b已自动登录");
+            DataCon dc = MMOCore.getPlayerData(player);
             dc.set("Player.login_time",System.currentTimeMillis());
         }
     }
@@ -55,7 +63,7 @@ public class LoginListener implements Listener {
         } else {
             event.getPlayer().sendMessage(" §b阁下已自动登录");
         }
-    }
+    }*/
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onAsyLogin(AsyncPlayerPreLoginEvent event) {
