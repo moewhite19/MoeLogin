@@ -47,7 +47,11 @@ public class PlayerLogin {
                 loc = pl;
             if (Utils.HorizontalDistance(pl,loc) > 0.5){
                 player.teleport(loc);
-                ActionBar.sendActionBar(player,Setting.loginmsg);
+                if (MoeLogin.plugin.hasMoeInfo()){
+                    ActionBar.sendActionBar(player,Setting.loginmsg);
+                } else {
+                    player.sendMessage(loginmsg);
+                }
             }
             mtime--;
             if (mtime < 1){

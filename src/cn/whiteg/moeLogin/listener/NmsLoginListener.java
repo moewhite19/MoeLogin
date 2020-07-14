@@ -85,7 +85,7 @@ public class NmsLoginListener extends LoginListener {
         } else {
             if (this.state == NmsLoginListener.EnumProtocolState.READY_TO_ACCEPT){
                 if (this.networkManager.isConnected()){
-                    this.onLogin();
+                    this.ReadyLogin();
                 }
             } else if (this.state == NmsLoginListener.EnumProtocolState.DELAY_ACCEPT){
                 EntityPlayer entityplayer = getActivePlayer(this.gameProfile.getId());
@@ -145,8 +145,8 @@ public class NmsLoginListener extends LoginListener {
 
     }
 
-    //开始登录
-    public void onLogin() {
+    //准备登录
+    public void ReadyLogin() {
         EntityPlayer s = attemptLogin(this.gameProfile,this.hostname);
         if (s != null){
             this.state = NmsLoginListener.EnumProtocolState.ACCEPTED;
@@ -168,6 +168,7 @@ public class NmsLoginListener extends LoginListener {
     }
 
 
+    //获取UUID玩家Map
     public Map<UUID, EntityPlayer> getUUIDMap() {
         if (uuidMap == null){
             try{
@@ -179,11 +180,13 @@ public class NmsLoginListener extends LoginListener {
         return uuidMap;
     }
 
+    //获取活跃玩家
     EntityPlayer getActivePlayer(UUID uuid) {
         EntityPlayer player = getUUIDMap().get(uuid);
         return player != null ? player : getPendingPlayers().get(uuid);
     }
 
+    //获取等待中玩家
     public Map<UUID, EntityPlayer> getPendingPlayers() {
         if (pendingPlayers == null){
             try{
@@ -195,6 +198,7 @@ public class NmsLoginListener extends LoginListener {
         return pendingPlayers;
     }
 
+    //获取Craftbukkit服务器
     CraftServer getCraftServer() {
         if (cserver == null){
             try{
@@ -318,11 +322,11 @@ public class NmsLoginListener extends LoginListener {
             authenticatorPool.execute(new Runnable() {
                 public void run() {
                     try{
-                        NmsLoginListener.this.initUUID();
-                        (NmsLoginListener.this.new LoginHandler()).fireEvents();
+                        initUUID();
+                        new LoginHandler().fireEvents();
                     }catch (Exception var2){
-                        NmsLoginListener.this.disconnect("Failed to verify username!");
-                        NmsLoginListener.this.server.server.getLogger().log(Level.WARNING,"Exception verifying " + NmsLoginListener.this.gameProfile.getName(),var2);
+                        disconnect("Failed to verify username!");
+                        server.server.getLogger().log(Level.WARNING,"Exception verifying " + gameProfile.getName(),var2);
                     }
 
                 }
@@ -341,53 +345,52 @@ public class NmsLoginListener extends LoginListener {
         } else {
             this.loginKey = packetlogininencryptionbegin.a(privatekey);
             this.state = NmsLoginListener.EnumProtocolState.AUTHENTICATING;
-            this.networkManager.a(this.loginKey);
+            this.networkManager.a(this.loginKey); //设置会话加密key
             authenticatorPool.execute(new Runnable() {
                 public void run() {
-                    GameProfile gameprofile = NmsLoginListener.this.gameProfile;
-
+                    GameProfile gameprofile = gameProfile;
                     try{
-                        String s = (new BigInteger(MinecraftEncryption.a("",NmsLoginListener.this.server.getKeyPair().getPublic(),NmsLoginListener.this.loginKey))).toString(16);
-                        NmsLoginListener.this.gameProfile = NmsLoginListener.this.server.getMinecraftSessionService().hasJoinedServer(new GameProfile(null,gameprofile.getName()),s,this.a());
-                        if (NmsLoginListener.this.gameProfile != null){
-                            if (!NmsLoginListener.this.networkManager.isConnected()){
+                        String s = (new BigInteger(MinecraftEncryption.a("",server.getKeyPair().getPublic(),loginKey))).toString(16);
+                        gameProfile = server.getMinecraftSessionService().hasJoinedServer(new GameProfile(null,gameprofile.getName()),s,this.a());
+                        if (gameProfile != null){
+                            if (!networkManager.isConnected()){
                                 return;
                             }
 
-                            (NmsLoginListener.this.new LoginHandler()).fireEvents();
-                        } else if (NmsLoginListener.this.server.isEmbeddedServer()){
+                            new LoginHandler().fireEvents();
+                        } else if (server.isEmbeddedServer()){
                             NmsLoginListener.LOGGER.warn("Failed to verify username but will let them in anyway!");
-                            NmsLoginListener.this.gameProfile = NmsLoginListener.this.a(gameprofile);
-                            NmsLoginListener.this.state = NmsLoginListener.EnumProtocolState.READY_TO_ACCEPT;
+                            gameProfile = NmsLoginListener.this.a(gameprofile);
+                            state = NmsLoginListener.EnumProtocolState.READY_TO_ACCEPT;
                         } else {
-                            NmsLoginListener.this.disconnect(new ChatMessage("multiplayer.disconnect.unverified_username"));
+                            disconnect(new ChatMessage("multiplayer.disconnect.unverified_username"));
                             NmsLoginListener.LOGGER.error("Username '{}' tried to join with an invalid session",gameprofile.getName());
                         }
                     }catch (AuthenticationUnavailableException var3){
-                        if (NmsLoginListener.this.server.isEmbeddedServer()){
+                        if (server.isEmbeddedServer()){
                             NmsLoginListener.LOGGER.warn("Authentication servers are down but will let them in anyway!");
-                            NmsLoginListener.this.gameProfile = NmsLoginListener.this.a(gameprofile);
-                            NmsLoginListener.this.state = NmsLoginListener.EnumProtocolState.READY_TO_ACCEPT;
+                            gameProfile = NmsLoginListener.this.a(gameprofile);
+                            state = NmsLoginListener.EnumProtocolState.READY_TO_ACCEPT;
                         } else {
                             if (PaperConfig.authenticationServersDownKickMessage != null){
-                                NmsLoginListener.this.disconnect(new ChatComponentText(PaperConfig.authenticationServersDownKickMessage));
+                                disconnect(new ChatComponentText(PaperConfig.authenticationServersDownKickMessage));
                             } else {
-                                NmsLoginListener.this.disconnect(new ChatMessage("multiplayer.disconnect.authservers_down"));
+                                disconnect(new ChatMessage("multiplayer.disconnect.authservers_down"));
                             }
 
                             NmsLoginListener.LOGGER.error("Couldn't verify username because servers are unavailable");
                         }
                     }catch (Exception var4){
-                        NmsLoginListener.this.disconnect("Failed to verify username!");
-                        NmsLoginListener.this.server.server.getLogger().log(Level.WARNING,"Exception verifying " + gameprofile.getName(),var4);
+                        disconnect("Failed to verify username!");
+                        server.server.getLogger().log(Level.WARNING,"Exception verifying " + gameprofile.getName(),var4);
                     }
 
                 }
 
                 @Nullable
                 private InetAddress a() {
-                    SocketAddress socketaddress = NmsLoginListener.this.networkManager.getSocketAddress();
-                    return NmsLoginListener.this.server.U() && socketaddress instanceof InetSocketAddress ? ((InetSocketAddress) socketaddress).getAddress() : null;
+                    SocketAddress socketaddress = networkManager.getSocketAddress();
+                    return server.U() && socketaddress instanceof InetSocketAddress ? ((InetSocketAddress) socketaddress).getAddress() : null;
                 }
             });
         }
@@ -406,7 +409,7 @@ public class NmsLoginListener extends LoginListener {
                 this.setGameProfile(VelocityProxy.createProfile(buf));
                 authenticatorPool.execute(() -> {
                     try{
-                        (new NmsLoginListener.LoginHandler()).fireEvents();
+                        new LoginHandler().fireEvents();
                     }catch (Exception var2){
                         this.disconnect("Failed to verify username!");
                         this.server.server.getLogger().log(Level.WARNING,"Exception verifying " + this.gameProfile.getName(),var2);
@@ -439,21 +442,21 @@ public class NmsLoginListener extends LoginListener {
         }
 
         public void fireEvents() throws Exception {
-            if (NmsLoginListener.this.velocityLoginMessageId == -1 && PaperConfig.velocitySupport){
-                NmsLoginListener.this.disconnect("This server requires you to connect with Velocity.");
+            if (velocityLoginMessageId == -1 && PaperConfig.velocitySupport){
+                disconnect("This server requires you to connect with Velocity.");
             } else {
-                String playerName = NmsLoginListener.this.gameProfile.getName();
-                InetAddress address = ((InetSocketAddress) NmsLoginListener.this.networkManager.getSocketAddress()).getAddress();
-                UUID uniqueId = NmsLoginListener.this.gameProfile.getId();
+                String playerName = gameProfile.getName();
+                InetAddress address = ((InetSocketAddress) networkManager.getSocketAddress()).getAddress();
+                UUID uniqueId = gameProfile.getId();
                 final CraftServer server = NmsLoginListener.this.server.server;
-                PlayerProfile profile = CraftPlayerProfile.asBukkitMirror(NmsLoginListener.this.getGameProfile());
+                PlayerProfile profile = CraftPlayerProfile.asBukkitMirror(getGameProfile());
                 AsyncPlayerPreLoginEvent asyncEvent = new AsyncPlayerPreLoginEvent(playerName,address,uniqueId,profile);
                 server.getPluginManager().callEvent(asyncEvent);
                 profile = asyncEvent.getPlayerProfile();
                 profile.complete(true);
-                NmsLoginListener.this.setGameProfile(CraftPlayerProfile.asAuthlib(profile));
-                playerName = NmsLoginListener.this.gameProfile.getName();
-                uniqueId = NmsLoginListener.this.gameProfile.getId();
+                setGameProfile(CraftPlayerProfile.asAuthlib(profile));
+                playerName = gameProfile.getName();
+                uniqueId = gameProfile.getId();
                 if (PlayerPreLoginEvent.getHandlerList().getRegisteredListeners().length != 0){
                     final PlayerPreLoginEvent event = new PlayerPreLoginEvent(playerName,address,uniqueId);
                     if (asyncEvent.getResult() != Result.ALLOWED){
@@ -468,16 +471,16 @@ public class NmsLoginListener extends LoginListener {
                     };
                     NmsLoginListener.this.server.processQueue.add(waitable);
                     if (waitable.get() != Result.ALLOWED){
-                        NmsLoginListener.this.disconnect(event.getKickMessage());
+                        disconnect(event.getKickMessage());
                         return;
                     }
                 } else if (asyncEvent.getLoginResult() != org.bukkit.event.player.AsyncPlayerPreLoginEvent.Result.ALLOWED){
-                    NmsLoginListener.this.disconnect(asyncEvent.getKickMessage());
+                    disconnect(asyncEvent.getKickMessage());
                     return;
                 }
 
-                NmsLoginListener.LOGGER.info("UUID of player {} is {}",NmsLoginListener.this.gameProfile.getName(),NmsLoginListener.this.gameProfile.getId());
-                NmsLoginListener.this.state = NmsLoginListener.EnumProtocolState.READY_TO_ACCEPT;
+                NmsLoginListener.LOGGER.info("UUID of player {} is {}",gameProfile.getName(),gameProfile.getId());
+                state = NmsLoginListener.EnumProtocolState.READY_TO_ACCEPT;
             }
         }
     }

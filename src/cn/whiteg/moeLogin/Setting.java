@@ -34,6 +34,8 @@ public class Setting {
     public static List<Integer> viaVersion;
     public static Map<String, String> yggdrasilMap = new HashMap<>();
     public static boolean antiDeathHandle = false;
+    public static boolean keepSkin = true;
+    public static String defaultYggdrasil = null;
 
     public static void reload() {
         MoeLogin plugin = MoeLogin.plugin;
@@ -64,12 +66,14 @@ public class Setting {
         VERIFICATION_REG = config.getBoolean("RegisterVerification",false);
         DISALL_NEWPLAYER = config.getBoolean("NewPlayerJoin.DisallowPlayer");
         DISALL_MESSAGE = config.getString("NewPlayerJoin.DisallowMessage");
-        antiDeathHandle = config.getBoolean("AntiDeathHandle", false);
+        antiDeathHandle = config.getBoolean("AntiDeathHandle",false);
 
         ConfigurationSection cs = config.getConfigurationSection("Authenticate");
         if (cs != null){
             authenticate = cs.getBoolean("enable");
+            keepSkin = cs.getBoolean("keepSkin");
             defaultAuthenticate = cs.getBoolean("defaultAuthenticate");
+            defaultYggdrasil = cs.getString("defaultYggdrasil");
             autoRegister = cs.getBoolean("autoRegister");
             cs = cs.getConfigurationSection("Yggdrasil");
             if (cs != null){

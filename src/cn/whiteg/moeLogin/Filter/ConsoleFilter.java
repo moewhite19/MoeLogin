@@ -1,14 +1,14 @@
 package cn.whiteg.moeLogin.Filter;
 
-import java.util.logging.Filter;
-import java.util.logging.LogRecord;
-import java.util.logging.Logger;
-
 import cn.whiteg.moeLogin.LoginManage;
 import cn.whiteg.moeLogin.MoeLogin;
 import org.apache.logging.log4j.LogManager;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+
+import java.util.logging.Filter;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
 public class ConsoleFilter implements Filter {
     private static log4jFilter log4jFilter;
@@ -24,12 +24,7 @@ public class ConsoleFilter implements Filter {
         }
     }
 
-    public static void unsetConsoleFilter() {
-        if (log4jFilter != null){
-            log4jFilter.stop();
-        }
-    }
-
+    //Hook控制台
     private static void setLogFilter() {
         org.apache.logging.log4j.core.Logger logger;
         logger = (org.apache.logging.log4j.core.Logger) LogManager.getRootLogger();
@@ -37,15 +32,16 @@ public class ConsoleFilter implements Filter {
         logger.addFilter(log4jFilter);
     }
 
-    @Override
-    public boolean isLoggable(LogRecord record) {
-        if (isloginmsg(record.getMessage())){
-            record.setMessage("");
+    //注销控制台Hook
+    public static void unsetConsoleFilter() {
+        if (log4jFilter != null){
+            log4jFilter.stop();
         }
-        return true;
     }
 
-    public static boolean isloginmsg(String msg) {
+
+    //是否为登录指令
+    public static boolean isLoginMessage(String msg) {
         final String str = " issued server command: ";
         if (msg.contains(str)){
             String[] fg = msg.split(" issued server command: ");
@@ -57,8 +53,17 @@ public class ConsoleFilter implements Filter {
                 MoeLogin.logger.info(n + "尝试登陆");
                 return true;
             }
-            if (c.startsWith("/ml ") || c.startsWith("/moelogin ")) return true;
+            return c.startsWith("/ml ") || c.startsWith("/moelogin ");
         }
         return false;
+    }
+
+    //替换掉登录指令，隐藏密码
+    @Override
+    public boolean isLoggable(LogRecord record) {
+        if (isLoginMessage(record.getMessage())){
+            record.setMessage("");
+        }
+        return true;
     }
 }

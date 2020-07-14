@@ -3,7 +3,9 @@ package cn.whiteg.moeLogin;
 import cn.whiteg.mmocore.DataCon;
 import cn.whiteg.mmocore.MMOCore;
 import cn.whiteg.mmocore.common.PluginBase;
+import cn.whiteg.moeInfo.mainCommand.whois;
 import cn.whiteg.moeLogin.Filter.ConsoleFilter;
+import cn.whiteg.moeLogin.api.MoeInfoWhoisHook;
 import cn.whiteg.moeLogin.listener.AuthenticateListener;
 import cn.whiteg.moeLogin.listener.LoginListener;
 import cn.whiteg.moeLogin.listener.ViaVersion;
@@ -27,6 +29,7 @@ public class MoeLogin extends PluginBase {
     public final String yggdrasilTypeKey = "Player.yggdrasil";
     public CommandManage mainCommand;
     private AuthenticateListener authenticateListener;
+    private boolean moeinfo = false;
 
     public MoeLogin() {
         plugin = this;
@@ -54,6 +57,8 @@ public class MoeLogin extends PluginBase {
         if (!Setting.viaVersion.isEmpty()){
             regListener(new ViaVersion());
         }
+        moeinfo = Bukkit.getPluginManager().getPlugin("MoeInfo") != null;
+
 //        Plugin fastLogin = Bukkit.getPluginManager().getPlugin("FastLogin");
 //        try{
 //            if (fastLogin != null && fastLogin.isEnabled()){
@@ -67,8 +72,17 @@ public class MoeLogin extends PluginBase {
             authenticateListener = new AuthenticateListener();
             regListener(authenticateListener);
         }
-        logger.info("全部加载完成");
         ConsoleFilter.setupConsoleFilter();
+        if (moeinfo){
+            Bukkit.getScheduler().runTask(this,() -> {
+                whois.regMessager(new MoeInfoWhoisHook());
+            });
+        }
+        logger.info("全部加载完成");
+    }
+
+    public boolean hasMoeInfo() {
+        return moeinfo;
     }
 
     public void onDisable() {
@@ -93,7 +107,10 @@ public class MoeLogin extends PluginBase {
     }
 
     public boolean setPremium(String name,boolean var) {
-        DataCon dc = MMOCore.getPlayerData(name);
+        return setPremium(MMOCore.getPlayerData(name),var);
+    }
+
+    public boolean setPremium(DataCon dc,boolean var) {
         if (dc != null){
             dc.set(authPath,var);
             return true;
@@ -102,7 +119,10 @@ public class MoeLogin extends PluginBase {
     }
 
     public boolean isPremium(String name) {
-        DataCon dc = MMOCore.getPlayerData(name);
+        return isPremium(MMOCore.getPlayerData(name));
+    }
+
+    public boolean isPremium(DataCon dc) {
         if (dc != null){
             return dc.getConfig().getBoolean(authPath,Setting.defaultAuthenticate);
         } else {
@@ -111,15 +131,21 @@ public class MoeLogin extends PluginBase {
     }
 
     public String getYggdrasil(String name) {
-        DataCon dc = MMOCore.getPlayerData(name);
-        if (dc == null) return null;
-        return dc.getString(yggdrasilTypeKey);
+        return getYggdrasil(MMOCore.getPlayerData(name));
     }
 
-    public boolean setYggdrasil(String name, String url) {
-        DataCon dc = MMOCore.getPlayerData(name);
+    public String getYggdrasil(DataCon dc) {
+        if (dc == null) return null;
+        return dc.getString(yggdrasilTypeKey,Setting.defaultYggdrasil);
+    }
+
+    public boolean setYggdrasil(String name,String url) {
+        return setYggdrasil(MMOCore.getPlayerData(name),url);
+    }
+
+    public boolean setYggdrasil(DataCon dc,String url) {
         if (dc == null) return false;
-        dc.set(yggdrasilTypeKey , url);
+        dc.set(yggdrasilTypeKey,url);
         return true;
     }
 

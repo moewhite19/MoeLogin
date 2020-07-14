@@ -30,7 +30,8 @@ Authenticate:
   autoRegister: false
   #默认正版登录
   defaultAuthenticate: false
-
+  #默认外置登录(去掉注释启用
+  #defaultYggdrasil: 'LittleSkin'
   #外置登录URL
   Yggdrasil:
     LittleSkin: 'https://mcskin.littleservice.cn/api/yggdrasil/sessionserver/session/minecraft/'

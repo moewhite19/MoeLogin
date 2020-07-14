@@ -1,14 +1,16 @@
 package cn.whiteg.moeLogin.listener;
 
-import cn.whiteg.mmocore.MMOCore;
 import cn.whiteg.moeLogin.MoeLogin;
 import cn.whiteg.moeLogin.Setting;
 import cn.whiteg.moepacketapi.MoePacketAPI;
 import cn.whiteg.moepacketapi.PlayerPacketManage;
-import cn.whiteg.moepacketapi.api.event.PacketEvent;
+import cn.whiteg.moepacketapi.api.event.PacketReceiveEvent;
+import cn.whiteg.moepacketapi.api.event.PacketSendEvent;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.exceptions.AuthenticationUnavailableException;
+import com.mojang.authlib.properties.Property;
 import io.netty.channel.ChannelHandlerContext;
+import net.minecraft.server.v1_16_R1.LoginListener;
 import net.minecraft.server.v1_16_R1.*;
 import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.v1_16_R1.CraftServer;
@@ -24,16 +26,25 @@ import java.net.InetAddress;
 import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 public class AuthenticateListener implements Listener {
 
+    //会话验证线程
+    private static final AtomicInteger threadId = new AtomicInteger(0);
+    private static final ExecutorService authenticatorPool = Executors.newCachedThreadPool((r) -> {
+        return new Thread(r,"User Authenticator #" + threadId.incrementAndGet());
+    });
     private final byte[] token = new byte[4];
     private final Logger logger;
     //private Map<String, LoginSession> sessionMap = Collections.synchronizedMap(new MapMaker().weakKeys().makeMap());  //弱Key引用
-    private final Map<NetworkManager, LoginSession> sessionMap = Collections.synchronizedMap(new HashMap<>());
+    private final Map<NetworkManager, LoginSession> sessionMap = Collections.synchronizedMap(new HashMap<>()); //会话Map
     MinecraftServer server; //服务器对象
     private KeyPair keypair;  //密匙
+
 
     public AuthenticateListener() {
         logger = Logger.getLogger("MoeLogin{Authenticate}");
@@ -47,13 +58,12 @@ public class AuthenticateListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.LOW)
-    public void login(PacketEvent event) {
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void login(final PacketReceiveEvent event) {
         Object p = event.getPacket();
         if (Bukkit.getOnlineMode()) return;
         if (p instanceof PacketLoginInStart){
             PlayerPacketManage manage = MoePacketAPI.getInstance().getPlayerPacketManage();
-
             //跳过插件发包
             if (manage.isPluginPacket(p)) return;
 
@@ -75,6 +85,7 @@ public class AuthenticateListener implements Listener {
 
             if (Setting.DEBUG){
                 logger.info("玩家登陆会话ID为: " + event.getNetworkManage());
+                logger.info("UUID: " + event.getNetworkManage().spoofedUUID);
             }
 
             //检查玩家是否开启正版登录
@@ -87,6 +98,7 @@ public class AuthenticateListener implements Listener {
                 return;
             }
 
+            //检查玩家是否开启外置登录
             String yggdrasil = MoeLogin.plugin.getYggdrasil(gameProfile.getName());
             if (yggdrasil != null){
                 String baseUrl = Setting.yggdrasilMap.get(yggdrasil);
@@ -95,16 +107,19 @@ public class AuthenticateListener implements Listener {
                     logger.info("为玩家发送外置登录会话验证: " + gameProfile.getName() + ", 外置服务器为: " + yggdrasil);
                     sessionMap.put(event.getNetworkManage(),new LoginSession(gameProfile,event.getChannelHandleContext(),yggdrasil,baseUrl));
                     PacketLoginOutEncryptionBegin encryptionBegin = new PacketLoginOutEncryptionBegin("",keypair.getPublic(),token);
-                    event.getChannel().writeAndFlush(encryptionBegin);
+                    event.getNetworkManage().sendPacket(encryptionBegin);
                 } else {
                     MoeLogin.plugin.setYggdrasil(gameProfile.getName(),null);
-                    logger.info("无效外置登录URL: " + yggdrasil);
+                    logger.warning("无效外置登录: " + yggdrasil);
                 }
+                return;
             }
+            logger.info("玩家离线登录: " + gameProfile.getName());
 
         } else if (p instanceof PacketLoginInEncryptionBegin){
             PlayerPacketManage manage = MoePacketAPI.getInstance().getPlayerPacketManage();
-            LoginSession loginSession = sessionMap.get(event.getNetworkManage());
+            NetworkManager network = event.getNetworkManage();
+            LoginSession loginSession = sessionMap.get(network);
             if (loginSession == null){
                 return;
             }
@@ -118,9 +133,9 @@ public class AuthenticateListener implements Listener {
             }
             SecretKey loginKey = encryptionBegin.a(privatekey);
 
-            event.getNetworkManage().a(loginKey);
+            network.a(loginKey); //设置会话加密Key
 
-            Thread thread = new Thread("User Authenticator #" + gameProfile.getName()) {
+            authenticatorPool.execute(new Runnable() {
                 public void run() {
                     try{
                         String s = (new BigInteger(MinecraftEncryption.a("",keypair.getPublic(),loginKey))).toString(16);
@@ -138,18 +153,25 @@ public class AuthenticateListener implements Listener {
                             logger.info("会话验证完成: " + oloneGameProfile.getName());
                             if (!loginSession.getGameProfile().getName().equalsIgnoreCase(oloneGameProfile.getName())){
                                 logger.warning("会话ID不一致,玩家名字为: " + gameProfile.getName() + ", 会话验证获得的ID为: " + oloneGameProfile.getName());
-                                disconnect(event.getChannelHandleContext(),"阁下ID与会话ID不一致");
+                                disconnect(network,"阁下ID与会话ID不一致");
                                 return;
                             }
                             PacketLoginInStart packet = new PacketLoginInStart(gameProfile);
                             manage.recieveClientPacket(event.getChannel(),packet);
+                            loginSession.pass = true;
+                            if (Setting.DEBUG){
+                                if (network.i() instanceof LoginListener){
+                                    LoginListener loginListener = (LoginListener) network.i();
+                                    logger.info("会话验证后玩家GameProfile : " + loginListener.getGameProfile());
+                                }
+                            }
                         } else {
-                            disconnect(event.getChannelHandleContext(),"multiplayer.disconnect.unverified_username");
-                            logger.warning("无效会话: " + gameProfile.getName());
+                            disconnect(event.getNetworkManage(),"multiplayer.disconnect.unverified_username");
+                            logger.warning("无法验证用户名: " + gameProfile.getName());
                         }
                     }catch (AuthenticationUnavailableException var3){
-                        disconnect(event.getChannelHandleContext(),"multiplayer.disconnect.authservers_down");
-                        logger.warning("会话验证失败: " + gameProfile.getName());
+                        disconnect(event.getNetworkManage(),"multiplayer.disconnect.authservers_down");
+                        logger.warning("会话服务器正在维护: " + gameProfile.getName());
                     }
                 }
 
@@ -161,40 +183,65 @@ public class AuthenticateListener implements Listener {
                     //return LoginListener.this.server.U() && socketaddress instanceof InetSocketAddress ? ((InetSocketAddress) socketaddress).getAddress() : null;
                     return null;
                 }
-            };
-            thread.start();
-        } else if (p instanceof PacketLoginOutSuccess){
-            if (MoePacketAPI.getInstance().getPlayerPacketManage().isPluginPacket(p)) return;
+            });
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void loginOut(PacketSendEvent event) {
+        if (event.getPacket() instanceof PacketLoginOutSuccess){
             LoginSession loginSession = sessionMap.get(event.getNetworkManage());
             if (!event.getChannel().isOpen()) return;
             if (loginSession != null){
                 GameProfile gameProfile = loginSession.getOloneGameProfile();
-                loginSession.pass = true;
                 if (gameProfile != null){
-                    event.setCancelled(true);
-                    //生成一个新的GameProfile
-                    String name = loginSession.getGameProfile().getName();
-                    GameProfile fakeProfile = new GameProfile(MMOCore.getOfflineUUID(name),name);
-                    PacketLoginOutSuccess success = new PacketLoginOutSuccess(fakeProfile);
-                    MoePacketAPI.getInstance().getPlayerPacketManage().setPluginPacket(success);
-                    NetworkManager networkManager = (NetworkManager) event.getChannel().pipeline().get("packet_handler");
-                    networkManager.sendPacket(success);
-                    logger.info("玩家已登录" + gameProfile.getName());
+                    NetworkManager networkManager = event.getNetworkManage();
+                    if (networkManager.i() instanceof LoginListener){
+                        LoginListener i = (LoginListener) networkManager.i();
+                        GameProfile g = i.getGameProfile();
+                        loginSession.initPropertiesTo(loginSession.getOloneGameProfile(),g);
+                        logger.info("玩家档案: " + g);
+                    }
+                    logger.info("玩家已验证完成:" + gameProfile.getName());
                 } else {
-                    disconnect(event.getChannelHandleContext(),"会话验证成功， 但登录过程中出现错误{0}");
+                    disconnect(event.getNetworkManage(),"会话验证成功， 但登录过程中出现错误{0}");
                 }
-            } else {
-                logger.info("离线玩家登录");
             }
         }
     }
 
+//    @EventHandler(ignoreCancelled = true)
+//    public void onLogin(PlayerLoginEvent event) {
+//        if (!sessionMap.isEmpty()){
+//            EntityPlayer np = ((CraftPlayer) event.getPlayer()).getHandle();
+//            sessionMap.forEach((networkManager,loginSession) -> {
+//                if (networkManager.i() instanceof LoginListener){
+//                    LoginListener i = (LoginListener) networkManager.i();
+//                    try{
+//                        Field f = LoginListener.class.getDeclaredField("l");
+//                        f.setAccessible(true);
+//                        EntityPlayer lp = (EntityPlayer) f.get(i);
+//                        if(np == lp){
+//                            GameProfile g = i.getGameProfile();
+//                            loginSession.initPropertiesTo(loginSession.getOloneGameProfile(),g);
+//                            logger.info("找到了---------------");
+//                        }else {
+//                            logger.info("没找到---------------");
+//                        }
+//                    }catch (NoSuchFieldException | IllegalAccessException e){
+//                        e.printStackTrace();
+//                    }
+//                }
+//            });
+//        }
+//
+//    }
+
     //断开连接
-    public void disconnect(ChannelHandlerContext channel,String msg) {
-        sessionMap.remove(MoePacketAPI.getInstance().getPlayerPacketManage().getNetworkManage(channel.channel()));
-        if (!channel.channel().isOpen()) return;
+    public void disconnect(NetworkManager networkManager,String msg) {
+        sessionMap.remove(networkManager);
+        if (!networkManager.isConnected()) return;
         try{
-            NetworkManager networkManager = MoePacketAPI.getInstance().getPlayerPacketManage().getNetworkManage(channel.channel());
             IChatBaseComponent ichat = new ChatMessage(msg);
             networkManager.sendPacket(new PacketLoginOutDisconnect(ichat));
             networkManager.close(ichat);
@@ -246,6 +293,17 @@ public class AuthenticateListener implements Listener {
             this.oloneGameProfile = oloneGameProfile;
         }
 
+        //应用皮肤
+        public void initPropertiesTo(GameProfile gameProfile,GameProfile gameProfile1) {
+            for (Map.Entry<String, Collection<Property>> entry : gameProfile.getProperties().asMap().entrySet()) {
+                Iterator<Property> it = entry.getValue().iterator();
+                if (it.hasNext()){
+                    gameProfile1.getProperties().put(entry.getKey(),it.next());
+                    MoeLogin.logger.info("已应用Properties: " + entry.getKey());
+                }
+            }
+        }
+
         public boolean isOnline() {
             return channelHandleContext.channel().isOpen();
         }
@@ -257,6 +315,7 @@ public class AuthenticateListener implements Listener {
         public String getYggdrasil() {
             return yggdrasil;
         }
+
 
         public String getYggdrasilUrl() {
             return yggdrasilUrl;

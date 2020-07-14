@@ -1,14 +1,11 @@
 package cn.whiteg.moeLogin.Filter;
 
-import cn.whiteg.moeLogin.LoginManage;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Marker;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.Logger;
 import org.apache.logging.log4j.core.filter.AbstractFilter;
 import org.apache.logging.log4j.message.Message;
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
 
 public class log4jFilter extends AbstractFilter {
     @Override
@@ -31,7 +28,7 @@ public class log4jFilter extends AbstractFilter {
     }
 
     private static Result validateMessage(String message) {
-        return ConsoleFilter.isloginmsg(message) ? Result.DENY : Result.NEUTRAL;
+        return ConsoleFilter.isLoginMessage(message) ? Result.DENY : Result.NEUTRAL;
 
     }
 

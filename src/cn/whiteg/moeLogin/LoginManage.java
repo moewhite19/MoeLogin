@@ -35,9 +35,9 @@ public class LoginManage {
         try{
             NetworkManager network = ((CraftPlayer) player).getHandle().networkManager;
             AuthenticateListener authListener = MoeLogin.plugin.getAuthenticateListener();
+            DataCon dc = MMOCore.getPlayerData(player);
             if (authListener != null){
                 AuthenticateListener.LoginSession loginSession = MoeLogin.plugin.getAuthenticateListener().getSessionMap().remove(network);
-                DataCon dc = MMOCore.getPlayerData(player);
                 if ((loginSession != null)){
                     if (loginSession.isPass()){
                         if (Setting.DEBUG){
@@ -60,9 +60,23 @@ public class LoginManage {
                         return true;
                     } else {
                         MoeLogin.plugin.getLogger().warning("玩家" + loginSession.getGameProfile().getName() + "会话验证没有完成，但是还是尝试在服务器登录");
-                        ((CraftPlayer) player).disconnect("登录失败");
+                        noLogin.put(player.getUniqueId(),new PlayerLogin(player));
+                        //直接kick会抛出异常
+//                        try{
+//                            network.close(new ChatMessage("登录失败"));
+//                        }catch (Exception e){
+//                            e.printStackTrace();
+//                        }
+                        return false;
                     }
                 }
+            }
+            if (hasAddressLogin(player,player.getAddress().getHostString())){
+                //标记最近登录时间
+                if (dc != null){
+                    dc.set("Player.login_time",System.currentTimeMillis());
+                }
+                return true;
             }
         }catch (Exception e){
             e.printStackTrace();
