@@ -21,7 +21,6 @@ import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.event.server.TabCompleteEvent;
 
-import java.net.InetSocketAddress;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.UUID;
@@ -85,6 +84,15 @@ public class LoginListener implements Listener {
                 }
             }
         } else {
+            String name = pd.getString("Player.name");
+            if (name == null){
+                name = event.getName();
+                pd.setString("Player.name",name);
+            }
+            if (!name.equals(event.getName())){
+                event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER,Setting.DISALL_MESSAGE);
+                return;
+            }
             ConfigurationSection sc = pd.getConfig().getConfigurationSection(Setting.banPath);
             if (sc != null){
                 long now = System.currentTimeMillis();

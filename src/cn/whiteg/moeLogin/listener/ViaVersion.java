@@ -40,7 +40,7 @@ public class ViaVersion implements Listener {
                     if (Setting.viaVersion.contains(protocol)){
                         handshakinProtocol.set(packet,serverProtocolVersion);
                         MoeLogin.logger.info("已允许使用协议版本: " + protocol);
-                    } else {
+                    } else if (Setting.DEBUG){
                         MoeLogin.logger.info("未知版本协议: " + protocol);
                     }
                 }

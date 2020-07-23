@@ -131,9 +131,9 @@ public class AuthenticateListener implements Listener {
             if (!Arrays.equals(token,encryptionBegin.b(privatekey))){
                 throw new IllegalStateException("Invalid nonce!");
             }
-            SecretKey loginKey = encryptionBegin.a(privatekey);
 
-            network.a(loginKey); //设置会话加密Key
+            SecretKey loginKey = encryptionBegin.a(privatekey);
+            network.a(loginKey); //设置编码器和解码器Key
 
             authenticatorPool.execute(new Runnable() {
                 public void run() {
@@ -157,8 +157,8 @@ public class AuthenticateListener implements Listener {
                                 return;
                             }
                             PacketLoginInStart packet = new PacketLoginInStart(gameProfile);
-                            manage.recieveClientPacket(event.getChannel(),packet);
-                            loginSession.pass = true;
+                            manage.recieveClientPacket(event.getChannel(),packet); //恢复登录状态
+                            loginSession.pass = true; //验证完成
                             if (Setting.DEBUG){
                                 if (network.i() instanceof LoginListener){
                                     LoginListener loginListener = (LoginListener) network.i();
@@ -179,7 +179,6 @@ public class AuthenticateListener implements Listener {
                 @Nullable
                 private InetAddress getInetAddress() {
                     //event.getChannelHandleContext();
-                    //return ;
                     //return LoginListener.this.server.U() && socketaddress instanceof InetSocketAddress ? ((InetSocketAddress) socketaddress).getAddress() : null;
                     return null;
                 }
@@ -196,11 +195,13 @@ public class AuthenticateListener implements Listener {
                 GameProfile gameProfile = loginSession.getOloneGameProfile();
                 if (gameProfile != null){
                     NetworkManager networkManager = event.getNetworkManage();
-                    if (networkManager.i() instanceof LoginListener){
-                        LoginListener i = (LoginListener) networkManager.i();
-                        GameProfile g = i.getGameProfile();
-                        loginSession.initPropertiesTo(loginSession.getOloneGameProfile(),g);
-                        logger.info("玩家档案: " + g);
+                    //为玩家应用皮肤
+                    PacketListener listener = networkManager.i();
+                    if (listener instanceof LoginListener){
+                        LoginListener i = (LoginListener) listener;
+                        GameProfile profile = i.getGameProfile();
+                        loginSession.initPropertiesTo(loginSession.getOloneGameProfile(),profile);
+//                            logger.info("玩家档案: " + profile);
                     }
                     logger.info("玩家已验证完成:" + gameProfile.getName());
                 } else {
