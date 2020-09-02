@@ -16,13 +16,13 @@ import com.mojang.authlib.yggdrasil.response.HasJoinedMinecraftServerResponse;
 import com.mojang.authlib.yggdrasil.response.ProfileSearchResultsResponse;
 import com.mojang.authlib.yggdrasil.response.Response;
 import com.mojang.util.UUIDTypeAdapter;
-import net.minecraft.server.v1_16_R1.DedicatedServer;
+import net.minecraft.server.v1_16_R2.DedicatedServer;
 import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.libs.org.apache.commons.io.Charsets;
 import org.bukkit.craftbukkit.libs.org.apache.commons.io.IOUtils;
 import org.bukkit.craftbukkit.libs.org.apache.commons.lang3.StringUtils;
 import org.bukkit.craftbukkit.libs.org.apache.commons.lang3.Validate;
-import org.bukkit.craftbukkit.v1_16_R1.CraftServer;
+import org.bukkit.craftbukkit.v1_16_R2.CraftServer;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -52,7 +52,7 @@ public class MojangAPI {
         builder.registerTypeAdapter(ProfileSearchResultsResponse.class,new com.mojang.authlib.yggdrasil.response.ProfileSearchResultsResponse.Serializer());
         this.gson = builder.create();
         DedicatedServer server = ((CraftServer) Bukkit.getServer()).getServer();
-        MinecraftSessionService sessionService = server.getSessionService();
+        MinecraftSessionService sessionService = server.getMinecraftSessionService();
         if (sessionService instanceof YggdrasilMinecraftSessionService){
             yggdrasilMinecraftSessionService = (YggdrasilMinecraftSessionService) sessionService;
         }

@@ -91,6 +91,7 @@ public class LoginListener implements Listener {
             }
             if (!name.equals(event.getName())){
                 event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER,Setting.DISALL_MESSAGE);
+                MoeLogin.plugin.getLogger().warning(" 玩家名称" + name + "和数据名称不匹配" + event.getName());
                 return;
             }
             ConfigurationSection sc = pd.getConfig().getConfigurationSection(Setting.banPath);

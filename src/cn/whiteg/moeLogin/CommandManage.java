@@ -11,15 +11,15 @@ import java.util.*;
 
 public class CommandManage extends CommandInterface {
     final public SubCommand subCommand = new SubCommand();
-    public Map<String, CommandInterface> commandMap = new HashMap();
+    public Map<String, CommandInterface> commandMap = new HashMap<>();
     public List<String> AllCmd;
 
     public CommandManage() {
         AllCmd = Arrays.asList("reload","unreg","login","passwd","logout","ban","mode","online","premium","yggdrasil");
-        for (int i = 0; i < AllCmd.size(); i++) {
+        for (String s : AllCmd) {
             try{
-                Class c = Class.forName("cn.whiteg.moeLogin.commands." + AllCmd.get(i));
-                regCommand(AllCmd.get(i),(CommandInterface) c.newInstance());
+                Class<?> c = Class.forName("cn.whiteg.moeLogin.commands." + s);
+                regCommand(s,(CommandInterface) c.newInstance());
             }catch (ClassNotFoundException | InstantiationException | IllegalAccessException e){
                 e.printStackTrace();
             }

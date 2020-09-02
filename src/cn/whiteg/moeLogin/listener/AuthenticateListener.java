@@ -2,6 +2,7 @@ package cn.whiteg.moeLogin.listener;
 
 import cn.whiteg.moeLogin.MoeLogin;
 import cn.whiteg.moeLogin.Setting;
+import cn.whiteg.moeLogin.utils.Utils;
 import cn.whiteg.moepacketapi.MoePacketAPI;
 import cn.whiteg.moepacketapi.PlayerPacketManage;
 import cn.whiteg.moepacketapi.api.event.PacketReceiveEvent;
@@ -10,10 +11,10 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.exceptions.AuthenticationUnavailableException;
 import com.mojang.authlib.properties.Property;
 import io.netty.channel.ChannelHandlerContext;
-import net.minecraft.server.v1_16_R1.LoginListener;
-import net.minecraft.server.v1_16_R1.*;
+import net.minecraft.server.v1_16_R2.LoginListener;
+import net.minecraft.server.v1_16_R2.*;
 import org.bukkit.Bukkit;
-import org.bukkit.craftbukkit.v1_16_R1.CraftServer;
+import org.bukkit.craftbukkit.v1_16_R2.CraftServer;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -157,12 +158,16 @@ public class AuthenticateListener implements Listener {
                                 return;
                             }
                             PacketLoginInStart packet = new PacketLoginInStart(gameProfile);
-                            manage.recieveClientPacket(event.getChannel(),packet); //恢复登录状态
+                            manage.recieveClientPacket(network,packet); //恢复登录状态
                             loginSession.pass = true; //验证完成
                             if (Setting.DEBUG){
-                                if (network.i() instanceof LoginListener){
-                                    LoginListener loginListener = (LoginListener) network.i();
-                                    logger.info("会话验证后玩家GameProfile : " + loginListener.getGameProfile());
+                                if (network.j() instanceof LoginListener){
+                                    LoginListener loginListener = (LoginListener) network.j();
+                                    try{
+                                        logger.info("会话验证后玩家GameProfile : " + Utils.getGameProfile(loginListener));
+                                    }catch (NoSuchFieldException | IllegalAccessException e){
+                                        e.printStackTrace();
+                                    }
                                 }
                             }
                         } else {
@@ -196,10 +201,16 @@ public class AuthenticateListener implements Listener {
                 if (gameProfile != null){
                     NetworkManager networkManager = event.getNetworkManage();
                     //为玩家应用皮肤
-                    PacketListener listener = networkManager.i();
+                    PacketListener listener = networkManager.j();
                     if (listener instanceof LoginListener){
                         LoginListener i = (LoginListener) listener;
-                        GameProfile profile = i.getGameProfile();
+                        GameProfile profile = null;
+                        try{
+                            profile = Utils.getGameProfile(i);
+                        }catch (NoSuchFieldException | IllegalAccessException e){
+                            e.printStackTrace();
+                            return; //出错了就返回吧
+                        }
                         loginSession.initPropertiesTo(loginSession.getOloneGameProfile(),profile);
 //                            logger.info("玩家档案: " + profile);
                     }

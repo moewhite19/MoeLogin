@@ -3,8 +3,10 @@ package cn.whiteg.moeLogin.utils;
 
 import cn.whiteg.moeLogin.MoeLogin;
 import cn.whiteg.moeLogin.Setting;
-import net.minecraft.server.v1_16_R1.DedicatedServer;
-import net.minecraft.server.v1_16_R1.MinecraftServer;
+import com.mojang.authlib.GameProfile;
+import net.minecraft.server.v1_16_R2.DedicatedServer;
+import net.minecraft.server.v1_16_R2.LoginListener;
+import net.minecraft.server.v1_16_R2.MinecraftServer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Server;
@@ -44,5 +46,11 @@ public class Utils {
         }catch (Exception e){
             e.printStackTrace();
         }
+    }
+
+    public static GameProfile getGameProfile(LoginListener loginListener) throws NoSuchFieldException, IllegalAccessException {
+        Field f = LoginListener.class.getDeclaredField("i");
+        f.setAccessible(true);
+        return (GameProfile) f.get(loginListener);
     }
 }
