@@ -115,7 +115,7 @@ public class PlayerLogin {
         if (regStr == null){
             regStr = password;
 //            player.sendMessage("§b请阁下再输入一遍密码来确认注册");
-            player.sendMessage("§b听不见,根本听不见,那么小声还想玩服务器? 重来!");
+            player.sendMessage("§b听不见,根本听不见,那么小声还想注册玩服务器? 重来!");
             return false;
         }
         if (!regStr.equals(password)){

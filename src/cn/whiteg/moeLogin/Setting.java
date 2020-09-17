@@ -23,7 +23,7 @@ public class Setting {
     public static String passPat = "Player.password";
     public static String sha1Pat = "Player.password_sha1";
     public static String loginmsg = "§b聊天输入 “/” + 密码 来登录";
-    public static String regmsg = "§b聊天输入 “/” + 密码 来登录或者注册 如 §3/mengbai520";
+    public static String regmsg = "§b聊天输入 “/” + 密码来注册 如 §3/mengbai520";
     public static boolean VERIFICATION_REG;
     public static boolean DISALL_NEWPLAYER;
     public static String DISALL_MESSAGE;
