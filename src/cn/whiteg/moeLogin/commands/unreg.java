@@ -1,8 +1,8 @@
 package cn.whiteg.moeLogin.commands;
 
-import cn.whiteg.mmocore.common.CommandInterface;
 import cn.whiteg.mmocore.DataCon;
 import cn.whiteg.mmocore.MMOCore;
+import cn.whiteg.mmocore.common.CommandInterface;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 
@@ -20,7 +20,7 @@ public class unreg extends CommandInterface {
             DataCon dc = MMOCore.getPlayerData(args[1]);
             if (dc != null){
                 dc.set("Player.password",null);
-                sender.sendMessage("§b已注销玩家§f" + dc.getName());
+                sender.sendMessage("§b已重置玩家§f " + dc.getName() + " §b的密码");
                 dc.save();
             } else {
                 sender.sendMessage("找不到玩家");

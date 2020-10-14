@@ -47,10 +47,4 @@ public class Utils {
             e.printStackTrace();
         }
     }
-
-    public static GameProfile getGameProfile(LoginListener loginListener) throws NoSuchFieldException, IllegalAccessException {
-        Field f = LoginListener.class.getDeclaredField("i");
-        f.setAccessible(true);
-        return (GameProfile) f.get(loginListener);
-    }
 }

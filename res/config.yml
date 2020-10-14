@@ -38,4 +38,7 @@ Authenticate:
     Blessing: 'https://skin.prinzeugen.net/api/yggdrasil/sessionserver/session/minecraft/'
 #允许跨协议版本号
 ViaVersion:
-  - 735 #1.16
+  #  - 735 #1.16
+  #  - 736 #1.16.1
+  - 751 #1.16.2
+  - 753 #1.16.3

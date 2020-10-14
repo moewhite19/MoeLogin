@@ -2,7 +2,6 @@ package cn.whiteg.moeLogin.listener;
 
 import cn.whiteg.moeLogin.MoeLogin;
 import cn.whiteg.moeLogin.Setting;
-import cn.whiteg.moeLogin.utils.Utils;
 import cn.whiteg.moepacketapi.MoePacketAPI;
 import cn.whiteg.moepacketapi.PlayerPacketManage;
 import cn.whiteg.moepacketapi.api.event.PacketReceiveEvent;
@@ -15,9 +14,12 @@ import net.minecraft.server.v1_16_R2.LoginListener;
 import net.minecraft.server.v1_16_R2.*;
 import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.v1_16_R2.CraftServer;
+import org.bukkit.craftbukkit.v1_16_R2.entity.CraftPlayer;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerLoginEvent;
 
 import javax.annotation.Nullable;
 import javax.crypto.SecretKey;
@@ -57,6 +59,12 @@ public class AuthenticateListener implements Listener {
         }catch (NoSuchFieldException | IllegalAccessException e){
             e.printStackTrace();
         }
+    }
+
+    public static GameProfile getGameProfile(LoginListener loginListener) throws NoSuchFieldException, IllegalAccessException {
+        Field f = LoginListener.class.getDeclaredField("i");
+        f.setAccessible(true);
+        return (GameProfile) f.get(loginListener);
     }
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
@@ -161,14 +169,7 @@ public class AuthenticateListener implements Listener {
                             manage.recieveClientPacket(network,packet); //恢复登录状态
                             loginSession.pass = true; //验证完成
                             if (Setting.DEBUG){
-                                if (network.j() instanceof LoginListener){
-                                    LoginListener loginListener = (LoginListener) network.j();
-                                    try{
-                                        logger.info("会话验证后玩家GameProfile : " + Utils.getGameProfile(loginListener));
-                                    }catch (NoSuchFieldException | IllegalAccessException e){
-                                        e.printStackTrace();
-                                    }
-                                }
+                                logger.info("会话验证后玩家GameProfile : " + oloneGameProfile);
                             }
                         } else {
                             disconnect(event.getNetworkManage(),"multiplayer.disconnect.unverified_username");
@@ -191,30 +192,36 @@ public class AuthenticateListener implements Listener {
         }
     }
 
-    @EventHandler(ignoreCancelled = true)
-    public void loginOut(PacketSendEvent event) {
+    //用于登录完成后设置皮肤
+    //@EventHandler(ignoreCancelled = true)
+    public void appendProfile(PacketSendEvent event) {
         if (event.getPacket() instanceof PacketLoginOutSuccess){
-            LoginSession loginSession = sessionMap.get(event.getNetworkManage());
             if (!event.getChannel().isOpen()) return;
+            LoginSession loginSession = sessionMap.get(event.getNetworkManage());
             if (loginSession != null){
                 GameProfile gameProfile = loginSession.getOloneGameProfile();
                 if (gameProfile != null){
                     NetworkManager networkManager = event.getNetworkManage();
                     //为玩家应用皮肤
                     PacketListener listener = networkManager.j();
+                    GameProfile profile;
                     if (listener instanceof LoginListener){
                         LoginListener i = (LoginListener) listener;
-                        GameProfile profile = null;
                         try{
-                            profile = Utils.getGameProfile(i);
+                            profile = getGameProfile(i);
                         }catch (NoSuchFieldException | IllegalAccessException e){
                             e.printStackTrace();
                             return; //出错了就返回吧
                         }
                         loginSession.initPropertiesTo(loginSession.getOloneGameProfile(),profile);
 //                            logger.info("玩家档案: " + profile);
+                    } else if (listener instanceof PlayerConnection){
+                        EntityPlayer player = ((PlayerConnection) listener).player;
+                        loginSession.initPropertiesTo(loginSession.getOloneGameProfile(),player.getProfile());
+                    } else {
+                        logger.warning("未知事件类: " + listener);
                     }
-                    logger.info("玩家已验证完成:" + gameProfile.getName());
+//                    logger.info("玩家已验证完成:" + gameProfile.getName());
                 } else {
                     disconnect(event.getNetworkManage(),"会话验证成功， 但登录过程中出现错误{0}");
                 }
@@ -222,32 +229,32 @@ public class AuthenticateListener implements Listener {
         }
     }
 
-//    @EventHandler(ignoreCancelled = true)
-//    public void onLogin(PlayerLoginEvent event) {
-//        if (!sessionMap.isEmpty()){
-//            EntityPlayer np = ((CraftPlayer) event.getPlayer()).getHandle();
-//            sessionMap.forEach((networkManager,loginSession) -> {
-//                if (networkManager.i() instanceof LoginListener){
-//                    LoginListener i = (LoginListener) networkManager.i();
-//                    try{
-//                        Field f = LoginListener.class.getDeclaredField("l");
-//                        f.setAccessible(true);
-//                        EntityPlayer lp = (EntityPlayer) f.get(i);
-//                        if(np == lp){
-//                            GameProfile g = i.getGameProfile();
-//                            loginSession.initPropertiesTo(loginSession.getOloneGameProfile(),g);
-//                            logger.info("找到了---------------");
-//                        }else {
-//                            logger.info("没找到---------------");
-//                        }
-//                    }catch (NoSuchFieldException | IllegalAccessException e){
-//                        e.printStackTrace();
-//                    }
-//                }
-//            });
-//        }
-//
-//    }
+
+    @EventHandler()
+    public void appendProfile(PlayerLoginEvent event) {
+        if (sessionMap.isEmpty()) return;
+        Player player = event.getPlayer();
+        //NetworkManager network = MoePacketAPI.getInstance().getPlayerPacketManage().getNetworkManage(player);  //这时获取到的NetworkManager为Null
+        for (Map.Entry<NetworkManager, LoginSession> entry : sessionMap.entrySet()) {
+            LoginSession session = entry.getValue();
+            if (session.getGameProfile().getName().equals(player.getName())){
+                NetworkManager network;
+                network = entry.getKey();
+                LoginSession loginSession = sessionMap.get(network);
+                if (loginSession != null){
+                    GameProfile gameProfile = loginSession.getOloneGameProfile();
+                    if (gameProfile != null){
+                        //为玩家应用皮肤
+                        EntityPlayer np = ((CraftPlayer) player).getHandle();
+                        loginSession.initPropertiesTo(loginSession.getOloneGameProfile(),np.getProfile());
+                    } else {
+                        disconnect(network,"会话验证成功， 但登录过程中出现错误{0}");
+                    }
+                }
+                return;
+            }
+        }
+    }
 
     //断开连接
     public void disconnect(NetworkManager networkManager,String msg) {
@@ -261,7 +268,6 @@ public class AuthenticateListener implements Listener {
             logger.warning("Error whilst disconnecting player");
         }
     }
-
 
     public Map<NetworkManager, LoginSession> getSessionMap() {
         return sessionMap;
@@ -306,11 +312,11 @@ public class AuthenticateListener implements Listener {
         }
 
         //应用皮肤
-        public void initPropertiesTo(GameProfile gameProfile,GameProfile gameProfile1) {
-            for (Map.Entry<String, Collection<Property>> entry : gameProfile.getProperties().asMap().entrySet()) {
+        public void initPropertiesTo(GameProfile olinProfile,GameProfile gameProfile) {
+            for (Map.Entry<String, Collection<Property>> entry : olinProfile.getProperties().asMap().entrySet()) {
                 Iterator<Property> it = entry.getValue().iterator();
                 if (it.hasNext()){
-                    gameProfile1.getProperties().put(entry.getKey(),it.next());
+                    gameProfile.getProperties().put(entry.getKey(),it.next());
                     MoeLogin.logger.info("已应用Properties: " + entry.getKey());
                 }
             }

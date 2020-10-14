@@ -1,6 +1,7 @@
 name: MoeLogin
 main: cn.whiteg.moeLogin.MoeLogin
 version: '1.3'
+api-version: 1.13
 author: MoeWhite
 depend: [MMOCore, MoePacketAPI]
 softdepend: [ProtocolLib ,FastLogin, MoeInfo]
