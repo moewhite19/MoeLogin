@@ -73,6 +73,8 @@ public class MoeLogin extends PluginBase {
             regListener(authenticateListener);
         }
         ConsoleFilter.setupConsoleFilter();
+
+        //注册whois指令的登录方式
         if (moeinfo){
             Bukkit.getScheduler().runTask(this,() -> {
                 whois.regMessager(new MoeInfoWhoisHook());

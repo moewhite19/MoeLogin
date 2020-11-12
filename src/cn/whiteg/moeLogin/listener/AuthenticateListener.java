@@ -10,11 +10,11 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.exceptions.AuthenticationUnavailableException;
 import com.mojang.authlib.properties.Property;
 import io.netty.channel.ChannelHandlerContext;
-import net.minecraft.server.v1_16_R2.LoginListener;
-import net.minecraft.server.v1_16_R2.*;
+import net.minecraft.server.v1_16_R3.LoginListener;
+import net.minecraft.server.v1_16_R3.*;
 import org.bukkit.Bukkit;
-import org.bukkit.craftbukkit.v1_16_R2.CraftServer;
-import org.bukkit.craftbukkit.v1_16_R2.entity.CraftPlayer;
+import org.bukkit.craftbukkit.v1_16_R3.CraftServer;
+import org.bukkit.craftbukkit.v1_16_R3.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -22,6 +22,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerLoginEvent;
 
 import javax.annotation.Nullable;
+import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import java.lang.reflect.Field;
 import java.math.BigInteger;
@@ -102,7 +103,7 @@ public class AuthenticateListener implements Listener {
                 event.setCancelled(true);
                 logger.info("为玩家发送正版验证请求: " + gameProfile.getName());
                 sessionMap.put(event.getNetworkManage(),new LoginSession(gameProfile,event.getChannelHandleContext()));
-                PacketLoginOutEncryptionBegin encryptionBegin = new PacketLoginOutEncryptionBegin("",keypair.getPublic(),token);
+                PacketLoginOutEncryptionBegin encryptionBegin = new PacketLoginOutEncryptionBegin("",keypair.getPublic().getEncoded(),token);
                 event.getChannel().writeAndFlush(encryptionBegin);
                 return;
             }
@@ -115,7 +116,7 @@ public class AuthenticateListener implements Listener {
                     event.setCancelled(true);
                     logger.info("为玩家发送外置登录会话验证: " + gameProfile.getName() + ", 外置服务器为: " + yggdrasil);
                     sessionMap.put(event.getNetworkManage(),new LoginSession(gameProfile,event.getChannelHandleContext(),yggdrasil,baseUrl));
-                    PacketLoginOutEncryptionBegin encryptionBegin = new PacketLoginOutEncryptionBegin("",keypair.getPublic(),token);
+                    PacketLoginOutEncryptionBegin encryptionBegin = new PacketLoginOutEncryptionBegin("",keypair.getPublic().getEncoded(),token);
                     event.getNetworkManage().sendPacket(encryptionBegin);
                 } else {
                     MoeLogin.plugin.setYggdrasil(gameProfile.getName(),null);
@@ -136,18 +137,30 @@ public class AuthenticateListener implements Listener {
             GameProfile gameProfile = loginSession.getGameProfile();
             logger.info("收到玩家返回的会话验证: " + gameProfile.getName());
             PacketLoginInEncryptionBegin encryptionBegin = (PacketLoginInEncryptionBegin) p;
-            PrivateKey privatekey = keypair.getPrivate();
-            if (!Arrays.equals(token,encryptionBegin.b(privatekey))){
-                throw new IllegalStateException("Invalid nonce!");
-            }
 
-            SecretKey loginKey = encryptionBegin.a(privatekey);
-            network.a(loginKey); //设置编码器和解码器Key
+            SecretKey loginKey;
+            loginKey = null;
+            String s;
+            PrivateKey privatekey = keypair.getPrivate();
+
+            try{
+                loginKey = encryptionBegin.a(privatekey);
+                Cipher cipher = MinecraftEncryption.a(2,loginKey);
+                Cipher cipher1 = MinecraftEncryption.a(1,loginKey);
+                network.a(cipher,cipher1);//设置编码器和解码器Key
+                s = (new BigInteger(MinecraftEncryption.a("",keypair.getPublic(),loginKey))).toString(16);
+                if (!Arrays.equals(token,encryptionBegin.b(privatekey))){
+                    throw new IllegalStateException("Protocol error");
+                }
+            }catch (CryptographyException e){
+                disconnect(network,"获取login key出现错误");
+                throw new IllegalStateException("Protocol error");
+            }
+//            network.a(loginKey);
 
             authenticatorPool.execute(new Runnable() {
                 public void run() {
                     try{
-                        String s = (new BigInteger(MinecraftEncryption.a("",keypair.getPublic(),loginKey))).toString(16);
                         GameProfile oloneGameProfile;
                         if (loginSession.yggdrasil == null)
                             oloneGameProfile = MoeLogin.getMojangAPI().hasJoinedServer(gameProfile,s,this.getInetAddress());
