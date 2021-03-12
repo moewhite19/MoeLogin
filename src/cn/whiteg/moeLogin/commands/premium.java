@@ -58,7 +58,7 @@ public class premium extends CommandInterface {
 
     @Override
     public List<String> onTabComplete(CommandSender sender,Command cmd,String label,String[] args) {
-        if (args.length == 2) return getMatches(args,MMOCore.getLatelyPlayerList());
+        if (args.length == 1) return getMatches(args,MMOCore.getLatelyPlayerList());
         return null;
     }
 }

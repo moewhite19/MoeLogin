@@ -27,7 +27,7 @@ public class unreg extends HasCommandInterface {
 
     @Override
     public List<String> completer(CommandSender sender,Command cmd,String label,String[] args) {
-        return PlayersList(args);
+        return getMatches(MMOCore.getLatelyPlayerList(),args);
     }
 
     @Override
