@@ -53,7 +53,7 @@ public class MoeLogin extends PluginBase {
 
     public void onEnable() {
         logger.info("开始加载插件");
-        logger.info("当前日志级别: " + logger.getLevel().getName());
+//        logger.info("当前日志级别: " + logger.getLevel().getName());
         if (Setting.DEBUG) logger.info("§a调试模式已开启");
         mainCommand = new CommandManage(this);
         PluginCommand pc = getCommand("moelogin");
