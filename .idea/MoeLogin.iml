@@ -11,7 +11,6 @@
     <orderEntry type="library" name="MoeTP" level="project" />
     <orderEntry type="library" name="MMOCore" level="project" />
     <orderEntry type="library" name="MoeInfo" level="project" />
-    <orderEntry type="library" name="MoeQbot" level="project" />
     <orderEntry type="library" name="MoePacketAPI" level="project" />
     <orderEntry type="library" name="patched_1.16.4" level="application" />
   </component>

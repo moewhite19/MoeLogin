@@ -2,8 +2,9 @@ package cn.whiteg.moeLogin;
 
 import cn.whiteg.mmocore.DataCon;
 import cn.whiteg.mmocore.MMOCore;
+import cn.whiteg.mmocore.common.CommandManage;
 import cn.whiteg.mmocore.common.PluginBase;
-import cn.whiteg.moeInfo.mainCommand.whois;
+import cn.whiteg.moeInfo.commands.whois;
 import cn.whiteg.moeLogin.Filter.ConsoleFilter;
 import cn.whiteg.moeLogin.api.MoeInfoWhoisHook;
 import cn.whiteg.moeLogin.listener.AuthenticateListener;
@@ -15,6 +16,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginCommand;
 
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static cn.whiteg.moeLogin.Setting.reload;
@@ -43,13 +45,17 @@ public class MoeLogin extends PluginBase {
     public void onLoad() {
         saveDefaultConfig();
         logger = getLogger();
-        reload();
+        Setting.reload();
+        if (Setting.DEBUG){
+            logger.setLevel(Level.ALL);
+        }
     }
 
     public void onEnable() {
         logger.info("开始加载插件");
+        logger.info("当前日志级别: " + logger.getLevel().getName());
         if (Setting.DEBUG) logger.info("§a调试模式已开启");
-        mainCommand = new CommandManage();
+        mainCommand = new CommandManage(this);
         PluginCommand pc = getCommand("moelogin");
         pc.setExecutor(mainCommand);
         pc.setTabCompleter(mainCommand);

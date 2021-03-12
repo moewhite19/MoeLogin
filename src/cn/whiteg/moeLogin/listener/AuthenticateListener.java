@@ -70,12 +70,12 @@ public class AuthenticateListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void login(final PacketReceiveEvent event) {
-        Object p = event.getPacket();
-        if (Bukkit.getOnlineMode()) return;
-        if (p instanceof PacketLoginInStart){
+        Object packet = event.getPacket();
+        if (Bukkit.getOnlineMode()) return; //如果当前服务器为在线模式跳出
+        if (packet instanceof PacketLoginInStart){
             PlayerPacketManage manage = MoePacketAPI.getInstance().getPlayerPacketManage();
             //跳过插件发包
-            if (manage.isPluginPacket(p)) return;
+            if (manage.isPluginPacket(packet)) return;
 
             //遍历清理Map
             synchronized (sessionMap) {
@@ -90,7 +90,7 @@ public class AuthenticateListener implements Listener {
                 }
             }
 
-            PacketLoginInStart start = (PacketLoginInStart) p;
+            PacketLoginInStart start = (PacketLoginInStart) packet;
             GameProfile gameProfile = start.b();
 
             if (Setting.DEBUG){
@@ -126,7 +126,7 @@ public class AuthenticateListener implements Listener {
             }
             logger.info("玩家离线登录: " + gameProfile.getName());
 
-        } else if (p instanceof PacketLoginInEncryptionBegin){
+        } else if (packet instanceof PacketLoginInEncryptionBegin){
             PlayerPacketManage manage = MoePacketAPI.getInstance().getPlayerPacketManage();
             NetworkManager network = event.getNetworkManage();
             LoginSession loginSession = sessionMap.get(network);
@@ -136,7 +136,7 @@ public class AuthenticateListener implements Listener {
             event.setCancelled(true);
             GameProfile gameProfile = loginSession.getGameProfile();
             logger.info("收到玩家返回的会话验证: " + gameProfile.getName());
-            PacketLoginInEncryptionBegin encryptionBegin = (PacketLoginInEncryptionBegin) p;
+            PacketLoginInEncryptionBegin encryptionBegin = (PacketLoginInEncryptionBegin) packet;
 
             SecretKey loginKey;
             loginKey = null;

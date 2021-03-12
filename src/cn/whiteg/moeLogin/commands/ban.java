@@ -3,6 +3,7 @@ package cn.whiteg.moeLogin.commands;
 import cn.whiteg.mmocore.DataCon;
 import cn.whiteg.mmocore.MMOCore;
 import cn.whiteg.mmocore.common.CommandInterface;
+import cn.whiteg.mmocore.common.HasCommandInterface;
 import cn.whiteg.mmocore.util.CommonUtils;
 import cn.whiteg.moeLogin.Setting;
 import org.bukkit.command.Command;
@@ -14,25 +15,24 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
-public class ban extends CommandInterface {
+public class ban extends HasCommandInterface {
 
     @Override
-    public boolean onCommand(CommandSender sender,Command cmd,String label,String[] args) {
-        if (!sender.hasPermission("mmo.ban")) return false;
-        if (args.length >= 3){
-            DataCon dc = MMOCore.getPlayerData(args[1]);
+    public boolean executor(CommandSender sender,Command cmd,String label,String[] args) {
+        if (args.length >= 2){
+            DataCon dc = MMOCore.getPlayerData(args[0]);
             if (dc == null){
                 sender.sendMessage("找不到玩家");
                 return false;
             }
-            long time = CommonUtils.getTime(args[2]);
+            long time = CommonUtils.getTime(args[1]);
             if (time == 0){
                 sender.sendMessage("无效时间");
                 return false;
             }
             String msg;
-            if (args.length > 3){
-                msg = args[3];
+            if (args.length > 2){
+                msg = args[2];
             } else {
                 msg = null;
             }
@@ -56,7 +56,12 @@ public class ban extends CommandInterface {
     }
 
     @Override
-    public List<String> onTabComplete(CommandSender commandSender,Command command,String s,String[] strings) {
+    public List<String> completer(CommandSender commandSender,Command command,String s,String[] strings) {
         return getMatches(strings,MMOCore.getLatelyPlayerList());
+    }
+
+    @Override
+    public boolean canUseCommand(CommandSender sender) {
+        return sender.hasPermission("mmo.ban");
     }
 }

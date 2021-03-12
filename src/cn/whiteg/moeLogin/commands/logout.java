@@ -13,7 +13,7 @@ public class logout extends CommandInterface {
 
     @Override
     public boolean onCommand(CommandSender sender,Command cmd,String label,String[] args) {
-        if (args.length == 1){
+        if (args.length == 0){
             if (sender instanceof Player){
                 if (!sender.hasPermission("moelogin.logout.self")) return false;
                 if (LoginManage.logOut((Player) sender)) sender.sendMessage("已为阁下安全登出");
@@ -21,9 +21,9 @@ public class logout extends CommandInterface {
                 return true;
             }
         }
-        if (args.length == 2){
+        if (args.length == 1){
             if (!sender.hasPermission("moelogin.logout.other")) return false;
-            Player player = Bukkit.getPlayer(args[1]);
+            Player player = Bukkit.getPlayer(args[0]);
             if (player != null){
                 if (LoginManage.logOut(player)){
                     sender.sendMessage("以为" + player.getName() + "登出");

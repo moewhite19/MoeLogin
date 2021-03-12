@@ -1,8 +1,8 @@
 package cn.whiteg.moeLogin.commands;
 
-import cn.whiteg.mmocore.common.CommandInterface;
 import cn.whiteg.mmocore.DataCon;
 import cn.whiteg.mmocore.MMOCore;
+import cn.whiteg.mmocore.common.CommandInterface;
 import cn.whiteg.moeLogin.LoginManage;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -17,10 +17,10 @@ public class passwd extends CommandInterface {
         if (!(sender instanceof Player)){
             return true;
         }
-        if (args.length == 3){
+        if (args.length == 2){
             Player player = (Player) sender;
-            String old = args[1];
-            String nw = args[2];
+            String old = args[0];
+            String nw = args[1];
             final DataCon dc = MMOCore.getPlayerData(player);
             if (dc == null){
                 return false;
@@ -34,11 +34,11 @@ public class passwd extends CommandInterface {
                     return true;
                 }
             } else {
-                sender.sendMessage("阁下旧密码填写正确哦");
+                sender.sendMessage("阁下旧密码填写不正确哦");
                 return true;
             }
         }
-        sender.sendMessage("输入指令§3/ml passwd + §b<旧密码> + <新密码> §f来修改密码哦");
+        sender.sendMessage("输入指令§3/ml passwd + §b<旧密码> + <新密码> + <重复新密码> §f来修改密码哦");
         return true;
     }
 

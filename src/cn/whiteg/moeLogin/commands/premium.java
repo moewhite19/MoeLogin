@@ -16,7 +16,7 @@ public class premium extends CommandInterface {
 
     @Override
     public boolean onCommand(CommandSender sender,Command cmd,String label,String[] args) {
-        if (args.length == 1){
+        if (args.length == 0){
             if (sender instanceof ConsoleCommandSender){
                 sender.sendMessage("控制台不能使用这个指令");
             } else {
@@ -40,10 +40,10 @@ public class premium extends CommandInterface {
                 sender.sendMessage("§b已为阁下设置为: " + (flag ? "§a正版登录" : "§c离线登录"));
                 return true;
             }
-        } else if (args.length == 2){
+        } else if (args.length == 1){
             if (!sender.hasPermission("moelogin.premium.other")) return false;
             MoeLogin plugin = MoeLogin.plugin;
-            DataCon dc = MMOCore.getPlayerData(args[1]);
+            DataCon dc = MMOCore.getPlayerData(args[0]);
             if (dc == null){
                 sender.sendMessage("找不到玩家");
                 return false;

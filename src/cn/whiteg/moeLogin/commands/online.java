@@ -1,6 +1,7 @@
 package cn.whiteg.moeLogin.commands;
 
 import cn.whiteg.mmocore.common.CommandInterface;
+import cn.whiteg.mmocore.common.HasCommandInterface;
 import cn.whiteg.moeLogin.utils.Utils;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -9,18 +10,22 @@ import org.bukkit.entity.Player;
 
 import java.util.List;
 
-public class online extends CommandInterface {
+public class online extends HasCommandInterface {
 
     @Override
-    public boolean onCommand(CommandSender sender,Command cmd,String label,String[] args) {
-        if (!sender.hasPermission("whiteg.test")) return false;
+    public boolean executor(CommandSender sender,Command cmd,String label,String[] args) {
         Utils.setOlineModele(!Bukkit.getOnlineMode());
         sender.sendMessage("修改服务器登陆模式为" + (Bukkit.getOnlineMode() ? "§b在线" : "§1离线"));
         return true;
     }
 
     @Override
-    public List<String> onTabComplete(CommandSender sender,Command cmd,String label,String[] args) {
+    public List<String> completer(CommandSender sender,Command cmd,String label,String[] args) {
         return PlayersList(args);
+    }
+
+    @Override
+    public boolean canUseCommand(CommandSender sender) {
+        return sender.hasPermission("whiteg.test");
     }
 }
