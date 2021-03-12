@@ -10,7 +10,7 @@ import java.util.List;
 public class reload extends HasCommandInterface {
 
     @Override
-    public boolean executor(CommandSender sender,Command cmd,String label,String[] args) {
+    public boolean executo(CommandSender sender,Command cmd,String label,String[] args) {
         MoeLogin.plugin.onReload();
         return true;
     }

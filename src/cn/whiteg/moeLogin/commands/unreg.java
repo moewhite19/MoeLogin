@@ -11,7 +11,7 @@ import java.util.List;
 public class unreg extends HasCommandInterface {
 
     @Override
-    public boolean executor(CommandSender sender,Command cmd,String label,String[] args) {
+    public boolean executo(CommandSender sender,Command cmd,String label,String[] args) {
         if (args.length == 2){
             DataCon dc = MMOCore.getPlayerData(args[1]);
             if (dc != null){
@@ -26,7 +26,7 @@ public class unreg extends HasCommandInterface {
     }
 
     @Override
-    public List<String> completer(CommandSender sender,Command cmd,String label,String[] args) {
+    public List<String> complete(CommandSender sender,Command cmd,String label,String[] args) {
         return getMatches(MMOCore.getLatelyPlayerList(),args);
     }
 

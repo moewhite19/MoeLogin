@@ -18,7 +18,7 @@ import java.util.List;
 public class ban extends HasCommandInterface {
 
     @Override
-    public boolean executor(CommandSender sender,Command cmd,String label,String[] args) {
+    public boolean executo(CommandSender sender,Command cmd,String label,String[] args) {
         if (args.length >= 2){
             DataCon dc = MMOCore.getPlayerData(args[0]);
             if (dc == null){
@@ -56,7 +56,7 @@ public class ban extends HasCommandInterface {
     }
 
     @Override
-    public List<String> completer(CommandSender commandSender,Command command,String s,String[] strings) {
+    public List<String> complete(CommandSender commandSender,Command command,String s,String[] strings) {
         return getMatches(strings,MMOCore.getLatelyPlayerList());
     }
 

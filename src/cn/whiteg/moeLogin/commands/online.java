@@ -13,14 +13,14 @@ import java.util.List;
 public class online extends HasCommandInterface {
 
     @Override
-    public boolean executor(CommandSender sender,Command cmd,String label,String[] args) {
+    public boolean executo(CommandSender sender,Command cmd,String label,String[] args) {
         Utils.setOlineModele(!Bukkit.getOnlineMode());
         sender.sendMessage("修改服务器登陆模式为" + (Bukkit.getOnlineMode() ? "§b在线" : "§1离线"));
         return true;
     }
 
     @Override
-    public List<String> completer(CommandSender sender,Command cmd,String label,String[] args) {
+    public List<String> complete(CommandSender sender,Command cmd,String label,String[] args) {
         return PlayersList(args);
     }
 

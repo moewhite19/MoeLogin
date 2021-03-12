@@ -13,7 +13,7 @@ import java.util.List;
 public class login extends HasCommandInterface {
 
     @Override
-    public boolean executor(CommandSender sender,Command cmd,String label,String[] args) {
+    public boolean executo(CommandSender sender,Command cmd,String label,String[] args) {
         if (args.length == 1){
             Player player = Bukkit.getPlayer(args[0]);
             if (player != null){
@@ -32,7 +32,7 @@ public class login extends HasCommandInterface {
     }
 
     @Override
-    public List<String> completer(CommandSender sender,Command cmd,String label,String[] args) {
+    public List<String> complete(CommandSender sender,Command cmd,String label,String[] args) {
         return PlayersList(args);
     }
 
