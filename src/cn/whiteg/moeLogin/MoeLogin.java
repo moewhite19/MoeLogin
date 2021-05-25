@@ -6,16 +6,16 @@ import cn.whiteg.mmocore.common.CommandManage;
 import cn.whiteg.mmocore.common.PluginBase;
 import cn.whiteg.moeInfo.commands.whois;
 import cn.whiteg.moeLogin.Filter.ConsoleFilter;
-import cn.whiteg.moeLogin.api.MoeInfoWhoisHook;
+import cn.whiteg.moeLogin.hook.WhoisLoginTypeMsgProvider;
 import cn.whiteg.moeLogin.listener.AuthenticateListener;
 import cn.whiteg.moeLogin.listener.LoginListener;
 import cn.whiteg.moeLogin.listener.ViaVersion;
 import cn.whiteg.moeLogin.utils.MojangAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.PluginCommand;
 
 import java.util.Map;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -56,36 +56,17 @@ public class MoeLogin extends PluginBase {
 //        logger.info("当前日志级别: " + logger.getLevel().getName());
         if (Setting.DEBUG) logger.info("§a调试模式已开启");
         mainCommand = new CommandManage(this);
-        PluginCommand pc = getCommand("moelogin");
-        pc.setExecutor(mainCommand);
-        pc.setTabCompleter(mainCommand);
+        mainCommand.setExecutor();
         regListener(new LoginListener());
         if (!Setting.viaVersion.isEmpty()){
             regListener(new ViaVersion());
         }
         moeinfo = Bukkit.getPluginManager().getPlugin("MoeInfo") != null;
-
-//        Plugin fastLogin = Bukkit.getPluginManager().getPlugin("FastLogin");
-//        try{
-//            if (fastLogin != null && fastLogin.isEnabled()){
-//                ((FastLoginBukkit) fastLogin).getCore().setAuthPluginHook(new FastLoginHook());
-//                logger.info("FastLogin Hooked");
-//            }
-//        }catch (Exception e){
-//            logger.info("FastLogin Not Found");
-//        }
         if (Setting.authenticate){
             authenticateListener = new AuthenticateListener();
             regListener(authenticateListener);
         }
         ConsoleFilter.setupConsoleFilter();
-
-        //注册whois指令的登录方式
-        if (moeinfo){
-            Bukkit.getScheduler().runTask(this,() -> {
-                whois.regMessager(new MoeInfoWhoisHook());
-            });
-        }
         logger.info("全部加载完成");
     }
 
@@ -97,8 +78,8 @@ public class MoeLogin extends PluginBase {
         unregListener();
         //注销注册玩家加入服务器事件
         ConsoleFilter.unsetConsoleFilter();
-        for (Map.Entry m : LoginManage.noLogin.entrySet()) {
-            PlayerLogin p = (PlayerLogin) m.getValue();
+        for (Map.Entry<UUID, PlayerLogin> m : LoginManage.noLogin.entrySet()) {
+            PlayerLogin p = m.getValue();
             p.remove();
             if (p.getPlayer().isOnline()){
                 p.getPlayer().kickPlayer("你没有登录");

@@ -2,8 +2,11 @@ package cn.whiteg.moeLogin.commands;
 
 import cn.whiteg.mmocore.MMOCore;
 import cn.whiteg.mmocore.common.CommandInterface;
+import cn.whiteg.moeInfo.commands.whois;
 import cn.whiteg.moeLogin.MoeLogin;
 import cn.whiteg.moeLogin.Setting;
+import cn.whiteg.moeLogin.hook.WhoisLoginTypeMsgProvider;
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
@@ -15,6 +18,15 @@ import java.util.Map;
 
 public class yggdrasil extends CommandInterface {
     WeakReference<List<String>> keys = new WeakReference<>(null);
+
+    public yggdrasil(MoeLogin plugin) {
+        //注册whois指令的登录方式
+        Bukkit.getScheduler().runTask(plugin,() -> {
+            if (plugin.hasMoeInfo()){
+                whois.regMessager(new WhoisLoginTypeMsgProvider(plugin));
+            }
+        });
+    }
 
     @Override
     public boolean onCommand(CommandSender sender,Command cmd,String label,String[] args) {
@@ -58,9 +70,9 @@ public class yggdrasil extends CommandInterface {
 
     @Override
     public List<String> onTabComplete(CommandSender sender,Command cmd,String label,String[] args) {
-        if (args.length == 2){
+        if (args.length == 1){
             return getKeys();
-        } else if (args.length == 3) return getMatches(args,MMOCore.getLatelyPlayerList());
+        } else if (args.length == 2) return getMatches(args,MMOCore.getLatelyPlayerList());
         return null;
     }
 

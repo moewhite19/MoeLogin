@@ -108,7 +108,7 @@ public class MojangAPI {
             if (Setting.DEBUG){
                 MoeLogin.logger.info("访问URL: " + url.toString());
             }
-            T result = (T) this.gson.fromJson(jsonResult,classOfT);
+            T result = this.gson.fromJson(jsonResult,classOfT);
             if (result == null){
                 return null;
             } else if (StringUtils.isNotBlank(result.getError())){

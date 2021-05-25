@@ -39,6 +39,7 @@ public class AuthenticateListener implements Listener {
 
     //会话验证线程
     private static final AtomicInteger threadId = new AtomicInteger(0);
+    //正版验证线程队列
     private static final ExecutorService authenticatorPool = Executors.newCachedThreadPool((r) -> {
         return new Thread(r,"User Authenticator #" + threadId.incrementAndGet());
     });
