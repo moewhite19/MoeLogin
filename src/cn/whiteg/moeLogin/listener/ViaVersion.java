@@ -4,8 +4,8 @@ import cn.whiteg.moeLogin.MoeLogin;
 import cn.whiteg.moeLogin.Setting;
 import cn.whiteg.moepacketapi.api.event.PacketReceiveEvent;
 import com.mojang.bridge.game.GameVersion;
-import net.minecraft.server.v1_16_R3.PacketHandshakingInSetProtocol;
-import net.minecraft.server.v1_16_R3.SharedConstants;
+import net.minecraft.SharedConstants;
+import net.minecraft.network.protocol.handshake.PacketHandshakingInSetProtocol;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 

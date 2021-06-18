@@ -12,6 +12,7 @@
     <orderEntry type="library" name="MMOCore" level="project" />
     <orderEntry type="library" name="MoeInfo" level="project" />
     <orderEntry type="library" name="MoePacketAPI" level="project" />
-    <orderEntry type="library" name="patched_1.16.4" level="application" />
+    <orderEntry type="library" name="spigot-1.17_fullmap" level="application" />
+    <orderEntry type="library" name="ReflectionFX-1.9.3" level="application" />
   </component>
 </module>

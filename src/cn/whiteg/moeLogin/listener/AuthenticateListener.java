@@ -2,6 +2,7 @@ package cn.whiteg.moeLogin.listener;
 
 import cn.whiteg.moeLogin.MoeLogin;
 import cn.whiteg.moeLogin.Setting;
+import cn.whiteg.moeLogin.utils.NMSUtils;
 import cn.whiteg.moepacketapi.MoePacketAPI;
 import cn.whiteg.moepacketapi.PlayerPacketManage;
 import cn.whiteg.moepacketapi.api.event.PacketReceiveEvent;
@@ -10,11 +11,19 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.exceptions.AuthenticationUnavailableException;
 import com.mojang.authlib.properties.Property;
 import io.netty.channel.ChannelHandlerContext;
-import net.minecraft.server.v1_16_R3.LoginListener;
-import net.minecraft.server.v1_16_R3.*;
+import net.minecraft.network.NetworkManager;
+import net.minecraft.network.PacketListener;
+import net.minecraft.network.chat.ChatMessage;
+import net.minecraft.network.chat.IChatBaseComponent;
+import net.minecraft.network.protocol.login.*;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.EntityPlayer;
+import net.minecraft.server.network.PlayerConnection;
+import net.minecraft.util.CryptographyException;
+import net.minecraft.util.MinecraftEncryption;
 import org.bukkit.Bukkit;
-import org.bukkit.craftbukkit.v1_16_R3.CraftServer;
-import org.bukkit.craftbukkit.v1_16_R3.entity.CraftPlayer;
+import org.bukkit.craftbukkit.v1_17_R1.CraftServer;
+import org.bukkit.craftbukkit.v1_17_R1.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -55,7 +64,7 @@ public class AuthenticateListener implements Listener {
         logger = Logger.getLogger("MoeLogin{Authenticate}");
         try{
             server = ((CraftServer) Bukkit.getServer()).getServer();
-            Field f = MinecraftServer.class.getDeclaredField("H");
+            Field f = NMSUtils.getFieldFormType(MinecraftServer.class,KeyPair.class);
             f.setAccessible(true);
             keypair = (KeyPair) f.get(server);
         }catch (NoSuchFieldException | IllegalAccessException e){
@@ -64,16 +73,16 @@ public class AuthenticateListener implements Listener {
     }
 
     public static GameProfile getGameProfile(LoginListener loginListener) throws NoSuchFieldException, IllegalAccessException {
-        Field f = LoginListener.class.getDeclaredField("i");
+        Field f = NMSUtils.getFieldFormType(net.minecraft.server.network.LoginListener.class,GameProfile.class);
         f.setAccessible(true);
         return (GameProfile) f.get(loginListener);
     }
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void login(final PacketReceiveEvent event) {
-        Object packet = event.getPacket();
+        var packet = event.getPacket();
         if (Bukkit.getOnlineMode()) return; //如果当前服务器为在线模式跳出
-        if (packet instanceof PacketLoginInStart){
+        if (packet instanceof PacketLoginInStart start){
             PlayerPacketManage manage = MoePacketAPI.getInstance().getPlayerPacketManage();
             //跳过插件发包
             if (manage.isPluginPacket(packet)) return;
@@ -91,7 +100,6 @@ public class AuthenticateListener implements Listener {
                 }
             }
 
-            PacketLoginInStart start = (PacketLoginInStart) packet;
             GameProfile gameProfile = start.b();
 
             if (Setting.DEBUG){
@@ -127,7 +135,7 @@ public class AuthenticateListener implements Listener {
             }
             logger.info("玩家离线登录: " + gameProfile.getName());
 
-        } else if (packet instanceof PacketLoginInEncryptionBegin){
+        } else if (packet instanceof PacketLoginInEncryptionBegin encryptionBegin){
             PlayerPacketManage manage = MoePacketAPI.getInstance().getPlayerPacketManage();
             NetworkManager network = event.getNetworkManage();
             LoginSession loginSession = sessionMap.get(network);
@@ -137,7 +145,6 @@ public class AuthenticateListener implements Listener {
             event.setCancelled(true);
             GameProfile gameProfile = loginSession.getGameProfile();
             logger.info("收到玩家返回的会话验证: " + gameProfile.getName());
-            PacketLoginInEncryptionBegin encryptionBegin = (PacketLoginInEncryptionBegin) packet;
 
             SecretKey loginKey;
             loginKey = null;
@@ -219,8 +226,7 @@ public class AuthenticateListener implements Listener {
                     //为玩家应用皮肤
                     PacketListener listener = networkManager.j();
                     GameProfile profile;
-                    if (listener instanceof LoginListener){
-                        LoginListener i = (LoginListener) listener;
+                    if (listener instanceof LoginListener i){
                         try{
                             profile = getGameProfile(i);
                         }catch (NoSuchFieldException | IllegalAccessException e){
@@ -230,7 +236,7 @@ public class AuthenticateListener implements Listener {
                         loginSession.initPropertiesTo(loginSession.getOloneGameProfile(),profile);
 //                            logger.info("玩家档案: " + profile);
                     } else if (listener instanceof PlayerConnection){
-                        EntityPlayer player = ((PlayerConnection) listener).player;
+                        EntityPlayer player = ((PlayerConnection) listener).b;
                         loginSession.initPropertiesTo(loginSession.getOloneGameProfile(),player.getProfile());
                     } else {
                         logger.warning("未知事件类: " + listener);

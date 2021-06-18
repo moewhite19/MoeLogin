@@ -3,8 +3,8 @@ package cn.whiteg.moeLogin.utils;
 
 import cn.whiteg.moeLogin.MoeLogin;
 import cn.whiteg.moeLogin.Setting;
-import net.minecraft.server.v1_16_R3.DedicatedServer;
-import net.minecraft.server.v1_16_R3.MinecraftServer;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.dedicated.DedicatedServer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Server;

@@ -5,9 +5,9 @@ import cn.whiteg.mmocore.MMOCore;
 import cn.whiteg.moeLogin.event.PlayerLoginEvent;
 import cn.whiteg.moeLogin.listener.AuthenticateListener;
 import cn.whiteg.moeLogin.utils.PasswordUtils;
-import net.minecraft.server.v1_16_R3.NetworkManager;
+import cn.whiteg.moepacketapi.utils.EntityNetUtils;
+import net.minecraft.network.NetworkManager;
 import org.bukkit.Bukkit;
-import org.bukkit.craftbukkit.v1_16_R3.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
@@ -33,7 +33,8 @@ public class LoginManage {
     //检查是否自动登录
     public static boolean hasLogin(Player player) {
         try{
-            NetworkManager network = ((CraftPlayer) player).getHandle().playerConnection.networkManager;
+//            NetworkManager network = MoePacketAPI.getInstance().getPlayerPacketManage().getNetworkManage(player);
+            NetworkManager network = EntityNetUtils.getNetWork(EntityNetUtils.getPlayerConnection(EntityNetUtils.getNmsPlayer(player)));
             AuthenticateListener authListener = MoeLogin.plugin.getAuthenticateListener();
             DataCon dc = MMOCore.getPlayerData(player);
             if (authListener != null){
