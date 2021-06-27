@@ -12,7 +12,7 @@ public class formalias extends CommandInterface {
     @Override
     public boolean onCommand(CommandSender sender,Command cmd,String label,String[] args) {
         if (args.length == 0){
-            sender.sendMessage("§b使用指令§a/" + cmd + " <玩家别名> §b来查询玩家ID");
+            sender.sendMessage("§b请在指令后面加上<玩家别名>来查询玩家ID");
         } else if (args.length >= 1){
             String alias;
             if (args.length > 1){

@@ -12,7 +12,7 @@ public class delalias extends HasCommandInterface {
     @Override
     public boolean executo(CommandSender sender,Command cmd,String label,String[] args) {
         if (args.length == 0){
-            sender.sendMessage("§b使用指令§a/" + label + " <玩家ID> §b来删除玩家别名");
+            sender.sendMessage("§b请在指令后面加上<玩家ID>来删除玩家别名");
         } else if (args.length >= 1){
             var player = args[0];
             var alias = MoeLogin.plugin.getAliasManage().unbinding(player);
