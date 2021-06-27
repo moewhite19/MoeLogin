@@ -15,7 +15,7 @@ public class delalias extends HasCommandInterface {
             sender.sendMessage("§b请在指令后面加上<玩家ID>来删除玩家别名");
         } else if (args.length >= 1){
             var player = args[0];
-            var alias = MoeLogin.plugin.getAliasManage().unbinding(player);
+            var alias = MoeLogin.plugin.getAliasManage().deleteFormPlayer(player);
             if (alias != null){
                 sender.sendMessage("§b已删除玩家 §f" + player + " §b的别名 §f" + alias);
             } else {

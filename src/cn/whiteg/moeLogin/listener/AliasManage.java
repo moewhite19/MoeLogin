@@ -1,5 +1,6 @@
 package cn.whiteg.moeLogin.listener;
 
+import cn.whiteg.mmocore.event.DataConCreateEvent;
 import cn.whiteg.mmocore.event.DataConDeleteEvent;
 import cn.whiteg.moeLogin.MoeLogin;
 import com.google.common.collect.BiMap;
@@ -31,11 +32,19 @@ public class AliasManage {
         return false;
     }
 
-    public synchronized String unbinding(String player) {
+    public synchronized String deleteFormPlayer(String player) {
         synchronized (bmap) {
-            String qqid = bmap.remove(player);
-            if (qqid != null) needSave = true;
-            return qqid;
+            String alias = bmap.remove(player);
+            if (alias != null) needSave = true;
+            return alias;
+        }
+    }
+
+    public synchronized String deleteFormAlias(String alias) {
+        synchronized (bmap) {
+            String player = bmap.inverse().remove(alias);
+            if (player != null) needSave = true;
+            return player;
         }
     }
 
@@ -117,8 +126,17 @@ public class AliasManage {
         }
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void onDelete(DataConDeleteEvent event) {
-        unbinding(event.getDataCon().getName());
+        deleteFormPlayer(event.getDataCon().getName());
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onCreate(DataConCreateEvent event) {
+        var player = event.getDataCon().getName();
+        var alias = deleteFormAlias(player);
+        if (alias != null){
+            MoeLogin.logger.warning("创建的玩家数据" + player + "已存在" + alias + "别名,已删除别名");
+        }
     }
 }
