@@ -4,9 +4,8 @@ import cn.whiteg.mmocore.DataCon;
 import cn.whiteg.mmocore.MMOCore;
 import cn.whiteg.mmocore.common.CommandManage;
 import cn.whiteg.mmocore.common.PluginBase;
-import cn.whiteg.moeInfo.commands.whois;
 import cn.whiteg.moeLogin.Filter.ConsoleFilter;
-import cn.whiteg.moeLogin.hook.WhoisLoginTypeMsgProvider;
+import cn.whiteg.moeLogin.listener.AliasManage;
 import cn.whiteg.moeLogin.listener.AuthenticateListener;
 import cn.whiteg.moeLogin.listener.LoginListener;
 import cn.whiteg.moeLogin.listener.ViaVersion;
@@ -30,6 +29,7 @@ public class MoeLogin extends PluginBase {
     public final String authPath = "Player.premium";
     public final String yggdrasilTypeKey = "Player.yggdrasil";
     public CommandManage mainCommand;
+    AliasManage aliasManage;
     private AuthenticateListener authenticateListener;
     private boolean moeinfo = false;
 
@@ -58,6 +58,8 @@ public class MoeLogin extends PluginBase {
         mainCommand = new CommandManage(this);
         mainCommand.setExecutor();
         regListener(new LoginListener());
+        aliasManage = new AliasManage(this);
+        aliasManage.load();
         if (!Setting.viaVersion.isEmpty()){
             regListener(new ViaVersion());
         }
@@ -76,6 +78,7 @@ public class MoeLogin extends PluginBase {
 
     public void onDisable() {
         unregListener();
+        aliasManage.save();
         //注销注册玩家加入服务器事件
         ConsoleFilter.unsetConsoleFilter();
         for (Map.Entry<UUID, PlayerLogin> m : LoginManage.noLogin.entrySet()) {
@@ -140,5 +143,9 @@ public class MoeLogin extends PluginBase {
 
     public AuthenticateListener getAuthenticateListener() {
         return authenticateListener;
+    }
+
+    public AliasManage getAliasManage() {
+        return aliasManage;
     }
 }

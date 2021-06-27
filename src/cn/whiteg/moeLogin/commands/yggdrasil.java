@@ -5,6 +5,7 @@ import cn.whiteg.mmocore.common.CommandInterface;
 import cn.whiteg.moeInfo.commands.whois;
 import cn.whiteg.moeLogin.MoeLogin;
 import cn.whiteg.moeLogin.Setting;
+import cn.whiteg.moeLogin.hook.WhoisAliasMsgProvider;
 import cn.whiteg.moeLogin.hook.WhoisLoginTypeMsgProvider;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -24,6 +25,7 @@ public class yggdrasil extends CommandInterface {
         Bukkit.getScheduler().runTask(plugin,() -> {
             if (plugin.hasMoeInfo()){
                 whois.regMessager(new WhoisLoginTypeMsgProvider(plugin));
+                whois.regMessager(new WhoisAliasMsgProvider(plugin));
             }
         });
     }

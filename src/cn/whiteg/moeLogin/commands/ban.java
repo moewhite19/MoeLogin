@@ -2,7 +2,6 @@ package cn.whiteg.moeLogin.commands;
 
 import cn.whiteg.mmocore.DataCon;
 import cn.whiteg.mmocore.MMOCore;
-import cn.whiteg.mmocore.common.CommandInterface;
 import cn.whiteg.mmocore.common.HasCommandInterface;
 import cn.whiteg.mmocore.util.CommonUtils;
 import cn.whiteg.moeLogin.Setting;

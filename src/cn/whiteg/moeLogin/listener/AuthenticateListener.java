@@ -62,6 +62,7 @@ public class AuthenticateListener implements Listener {
 
     public AuthenticateListener() {
         logger = Logger.getLogger("MoeLogin{Authenticate}");
+        new Random().nextBytes(token); //随机token
         try{
             server = ((CraftServer) Bukkit.getServer()).getServer();
             Field f = NMSUtils.getFieldFormType(MinecraftServer.class,KeyPair.class);
@@ -104,7 +105,26 @@ public class AuthenticateListener implements Listener {
 
             if (Setting.DEBUG){
                 logger.info("玩家登陆会话ID为: " + event.getNetworkManage());
-                logger.info("UUID: " + event.getNetworkManage().spoofedUUID);
+                logger.info("GameProfile: " + gameProfile);
+            }
+
+            var aliasManage = MoeLogin.plugin.getAliasManage();
+            if (aliasManage != null){
+                var player = aliasManage.getPlayer(gameProfile.getName());
+                if (player != null){
+                    var alias = gameProfile.getName();
+                    try{
+                        var properties = gameProfile.getProperties();
+                        gameProfile = new GameProfile(gameProfile.getId(),player);
+                        if (properties != null && !properties.isEmpty()){
+                            gameProfile.getProperties().putAll(properties);
+                        }
+                        logger.info("已将玩家别名" + alias + "替换为" + player);
+                        event.setPacket(new PacketLoginInStart(gameProfile));
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
+                }
             }
 
             //检查玩家是否开启正版登录

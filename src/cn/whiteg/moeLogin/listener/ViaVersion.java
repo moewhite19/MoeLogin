@@ -9,43 +9,27 @@ import net.minecraft.network.protocol.handshake.PacketHandshakingInSetProtocol;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-
 public class ViaVersion implements Listener {
-    public static int serverProtocolVersion;
-    public static Field handshakinProtocol;
+    public static final int serverProtocolVersion;
 
     static {
         GameVersion ver = SharedConstants.getGameVersion();
-        try{
-            Method method = ver.getClass().getDeclaredMethod("getProtocolVersion");
-            method.setAccessible(true);
-            serverProtocolVersion = (int) method.invoke(ver);
-            handshakinProtocol = PacketHandshakingInSetProtocol.class.getDeclaredField("a");
-            handshakinProtocol.setAccessible(true);
-        }catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException | NoSuchFieldException e){
-            e.printStackTrace();
-        }
+        serverProtocolVersion = ver.getProtocolVersion();
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void onLogin(PacketReceiveEvent event) {
-        if (event.getPacket() instanceof PacketHandshakingInSetProtocol){
-            PacketHandshakingInSetProtocol packet = (PacketHandshakingInSetProtocol) event.getPacket();
-            try{
-                int protocol = (int) handshakinProtocol.get(packet);
-                if (protocol != serverProtocolVersion){
-                    if (Setting.viaVersion.contains(protocol)){
-                        handshakinProtocol.set(packet,serverProtocolVersion);
-                        MoeLogin.logger.fine("已允许使用协议版本: " + protocol);
-                    } else if (Setting.DEBUG){
-                        MoeLogin.logger.info("未知版本协议: " + protocol);
-                    }
+        if (event.getPacket() instanceof PacketHandshakingInSetProtocol packet){
+            int ver = packet.c();
+            if (ver != serverProtocolVersion){
+                if (Setting.viaVersion.contains(ver)){
+                    var name = packet.d();
+                    var protocol = packet.b();
+                    event.setPacket(new PacketHandshakingInSetProtocol(name,ver,protocol));
+                    MoeLogin.logger.fine("已允许使用协议版本: " + ver);
+                } else if (Setting.DEBUG){
+                    MoeLogin.logger.info("未知版本协议: " + ver);
                 }
-            }catch (IllegalAccessException e){
-                e.printStackTrace();
             }
         }
     }
