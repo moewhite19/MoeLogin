@@ -24,11 +24,18 @@ public class alias extends CommandInterface {
                 }
                 return true;
             }
-        } else if (args.length == 1){
+        } else if (args.length >= 1){
             var dc = MMOCore.getPlayerData(sender);
             if (dc != null && dc.isLoaded()){
-                var alias = args[0];
-                if (alias == null || alias.isEmpty() || alias.equals(dc.getName())){
+                String alias;
+                if (args.length > 1){
+                    var coped = new String[args.length];
+                    System.arraycopy(args,0,coped,0,coped.length);
+                    alias = String.join(" ",coped);
+                } else {
+                    alias = args[0];
+                }
+                if (alias == null || alias.isEmpty() || alias.equals(dc.getName()) || alias.contains(":") || MMOCore.hasPlayerData(alias)){
                     sender.sendMessage("无效别名");
                     return false;
                 }

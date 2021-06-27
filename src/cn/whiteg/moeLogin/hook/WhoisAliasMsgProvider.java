@@ -13,7 +13,6 @@ public class WhoisAliasMsgProvider extends WhoisMessageProvider {
 
     @Override
     public String getMsg(CommandSender player,DataCon dataCon) {
-        if (MoeLogin.plugin.isPremium(dataCon)) return "§b登录方式: 正版";
         String alias = MoeLogin.plugin.getAliasManage().getAlias(dataCon.getName());
         if (alias != null) return "§b别名: " + alias;
         return null;
