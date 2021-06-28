@@ -6,10 +6,11 @@ import cn.whiteg.moeLogin.MoeLogin;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
 
 import java.io.*;
 
-public class AliasManage {
+public class AliasManage implements Listener {
     private final File file;
     private final BiMap<String, String> bmap = HashBiMap.create();
     private boolean needSave = false;

@@ -60,6 +60,7 @@ public class MoeLogin extends PluginBase {
         regListener(new LoginListener());
         aliasManage = new AliasManage(this);
         aliasManage.load();
+        regListener(aliasManage);
         if (!Setting.viaVersion.isEmpty()){
             regListener(new ViaVersion());
         }
