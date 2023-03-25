@@ -4,7 +4,7 @@ version: '1.3.1'
 api-version: 1.13
 author: MoeWhite
 depend: [MMOCore, MoePacketAPI]
-softdepend: [ProtocolLib ,FastLogin, MoeInfo]
+softdepend: [MoeInfo]
 commands:
   moelogin:
     description: The is MoeLogin Command

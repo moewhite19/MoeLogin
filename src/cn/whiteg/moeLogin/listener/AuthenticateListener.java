@@ -1,7 +1,7 @@
 package cn.whiteg.moeLogin.listener;
 
 import cn.whiteg.mmocore.MMOCore;
-import cn.whiteg.mmocore.reflection.FieldAccessor;
+import cn.whiteg.mmocore.reflection.MethodInvoker;
 import cn.whiteg.mmocore.util.NMSUtils;
 import cn.whiteg.moeLogin.MoeLogin;
 import cn.whiteg.moeLogin.Setting;
@@ -62,6 +62,18 @@ public class AuthenticateListener implements Listener {
     //获取玩家GameProfile
     private static Field gameProfileField;
 
+
+    private final byte[] token = new byte[4];
+    private final Logger logger;
+    //private Map<String, LoginSession> sessionMap = Collections.synchronizedMap(new MapMaker().weakKeys().makeMap());  //弱Key引用
+    private final Map<NetworkManager, LoginSession> sessionMap = Collections.synchronizedMap(new HashMap<>()); //会话Map
+    MinecraftServer server; //服务器对象
+    PlayerList playerList;
+    private KeyPair keypair;  //密匙
+    static SignatureValidator signatureValidator; //签名效验器
+    static MethodInvoker<String> loginStart_Name;
+    static MethodInvoker<Optional<UUID>> loginStart_getUUID;
+
     static {
         for (Field field : EntityHuman.class.getDeclaredFields())
             if (field.getType().equals(GameProfile.class)){
@@ -83,17 +95,29 @@ public class AuthenticateListener implements Listener {
                 }
             }
         }
+
+        findMethod:
+        {
+            for (Method method : PacketLoginInStart.class.getMethods()) {
+                if (method.getReturnType().isAssignableFrom(String.class) && method.getParameterTypes().length == 0 && !method.getName().startsWith("to")){
+                    loginStart_Name = new MethodInvoker<>(method);
+                    break findMethod;
+                }
+            }
+            throw new RuntimeException("Cant find LoginStartGetName");
+        }
+        findMethod:
+        {
+            for (Method method : PacketLoginInStart.class.getMethods()) {
+                if (method.getReturnType().isAssignableFrom(Optional.class) && method.getParameterTypes().length == 0){
+                    loginStart_getUUID = new MethodInvoker<>(method);
+                    break findMethod;
+                }
+            }
+            throw new RuntimeException("Cant find LoginStartGetName");
+        }
+
     }
-
-    private final byte[] token = new byte[4];
-    private final Logger logger;
-    //private Map<String, LoginSession> sessionMap = Collections.synchronizedMap(new MapMaker().weakKeys().makeMap());  //弱Key引用
-    private final Map<NetworkManager, LoginSession> sessionMap = Collections.synchronizedMap(new HashMap<>()); //会话Map
-    MinecraftServer server; //服务器对象
-    PlayerList playerList;
-    private KeyPair keypair;  //密匙
-    static SignatureValidator signatureValidator; //签名效验器
-
 
     private static final IChatBaseComponent MISSING_PUBLIC_KEY = IChatBaseComponent.c("multiplayer.disconnect.missing_public_key");
 
@@ -152,7 +176,8 @@ public class AuthenticateListener implements Listener {
             }
 
 
-            String name = start.b();
+            String name;
+            name = loginStart_Name.invoke(packet);
 
             if (Setting.DEBUG){
                 logger.info("玩家登陆: " + name + "#" + event.getNetworkManage());
@@ -164,7 +189,7 @@ public class AuthenticateListener implements Listener {
                 var alias = aliasManage.getPlayer(name);
                 if (alias != null){
 
-                    event.setPacket(new PacketLoginInStart(alias,start.c(),Optional.of(MMOCore.getUUID(alias)))); //将别名替换为当前名字
+                    event.setPacket(new PacketLoginInStart(alias,Optional.of(MMOCore.getUUID(alias)))); //将别名替换为当前名字
                     logger.info("玩家别名登录" + name + "已替换为" + alias + "并且使用离线登录");
 //                    name = alias;
                     //都用上别名了，应该不会需要正版验证
@@ -283,12 +308,7 @@ public class AuthenticateListener implements Listener {
                         loginSession.setOnlineGameProfile(onlineGameProfile);
                         if (onlineGameProfile != null){
                             //验证token
-                            ProfilePublicKey p = loginSession.getProfilePublicKey();
-                            if (p != null){
-                                if (!encryptionBegin.a(token,p)){
-                                    throw new IllegalStateException("Protocol error");
-                                }
-                            } else if (!encryptionBegin.a(token,privatekey)){
+                            if (!encryptionBegin.a(token,privatekey)){
                                 throw new IllegalStateException("Protocol error");
                             }
                             if (!event.getChannel().isOpen()){
@@ -301,7 +321,7 @@ public class AuthenticateListener implements Listener {
                                 disconnect(network,"阁下ID与会话ID不一致");
                                 return;
                             }
-                            PacketLoginInStart packet = new PacketLoginInStart(gameProfile.getName(),Optional.empty(),Optional.empty());
+                            PacketLoginInStart packet = new PacketLoginInStart(gameProfile.getName(),Optional.of(MMOCore.getUUID(gameProfile.getName())));
                             manage.recieveClientPacket(network,packet); //恢复登录状态
                             loginSession.pass();
                             if (Setting.DEBUG){
@@ -414,7 +434,6 @@ public class AuthenticateListener implements Listener {
         GameProfile gameProfile;
         GameProfile onlineGameProfile = null;
         boolean pass = false;
-        private Optional<ProfilePublicKey.a> optionalA;
 
         //正版登录
         public LoginSession(GameProfile gameProfile,ChannelHandlerContext channelHandleContext) {
@@ -480,11 +499,6 @@ public class AuthenticateListener implements Listener {
         }
 
         public void loginStart(PacketLoginInStart login) {
-            optionalA = login.c();
-        }
-
-        public ProfilePublicKey getProfilePublicKey() {
-            return getPublicKey(optionalA,this,false);
         }
     }
 
