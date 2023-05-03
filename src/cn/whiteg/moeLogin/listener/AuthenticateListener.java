@@ -1,7 +1,10 @@
 package cn.whiteg.moeLogin.listener;
 
 import cn.whiteg.mmocore.MMOCore;
+import cn.whiteg.mmocore.reflection.FieldAccessor;
 import cn.whiteg.mmocore.reflection.MethodInvoker;
+import cn.whiteg.mmocore.reflection.ReflectUtil;
+import cn.whiteg.mmocore.reflection.ReflectionFactory;
 import cn.whiteg.mmocore.util.NMSUtils;
 import cn.whiteg.moeLogin.MoeLogin;
 import cn.whiteg.moeLogin.Setting;
@@ -60,7 +63,7 @@ public class AuthenticateListener implements Listener {
     private static final ExecutorService authenticatorPool = Executors.newCachedThreadPool((r) -> new Thread(r,"User Authenticator #" + threadId.incrementAndGet()));
 
     //获取玩家GameProfile
-    private static Field gameProfileField;
+    private static FieldAccessor<GameProfile> gameProfileField;
 
 
     private final byte[] token = new byte[4];
@@ -73,12 +76,13 @@ public class AuthenticateListener implements Listener {
     static SignatureValidator signatureValidator; //签名效验器
     static MethodInvoker<String> loginStart_Name;
     static MethodInvoker<Optional<UUID>> loginStart_getUUID;
+    static FieldAccessor<GameProfile> loginGameProfile;
 
     static {
         for (Field field : EntityHuman.class.getDeclaredFields())
             if (field.getType().equals(GameProfile.class)){
                 field.setAccessible(true);
-                gameProfileField = field;
+                gameProfileField = new FieldAccessor<>(field);
                 break;
             }
 
@@ -117,6 +121,13 @@ public class AuthenticateListener implements Listener {
             throw new RuntimeException("Cant find LoginStartGetName");
         }
 
+        try{
+            Field f = ReflectUtil.getFieldFormType(net.minecraft.server.network.LoginListener.class,GameProfile.class);
+            loginGameProfile = new FieldAccessor<>(f);
+        }catch (Exception e){
+            throw new RuntimeException(e);
+        }
+
     }
 
     private static final IChatBaseComponent MISSING_PUBLIC_KEY = IChatBaseComponent.c("multiplayer.disconnect.missing_public_key");
@@ -129,12 +140,12 @@ public class AuthenticateListener implements Listener {
         try{
             Field f;
             //获取服务器密匙
-            f = NMSUtils.getFieldFormType(MinecraftServer.class,KeyPair.class);
+            f = ReflectUtil.getFieldFormType(MinecraftServer.class,KeyPair.class);
             f.setAccessible(true);
             keypair = (KeyPair) f.get(server);
 
             //获取玩家列表
-            f = NMSUtils.getFieldFormType(MinecraftServer.class,PlayerList.class);
+            f = ReflectUtil.getFieldFormType(MinecraftServer.class,PlayerList.class);
             f.setAccessible(true);
             playerList = (PlayerList) f.get(server);
 
@@ -143,10 +154,8 @@ public class AuthenticateListener implements Listener {
         }
     }
 
-    public static GameProfile getGameProfile(LoginListener loginListener) throws NoSuchFieldException, IllegalAccessException {
-        Field f = NMSUtils.getFieldFormType(net.minecraft.server.network.LoginListener.class,GameProfile.class);
-        f.setAccessible(true);
-        return (GameProfile) f.get(loginListener);
+    public static GameProfile getGameProfile(LoginListener loginListener) {
+        return loginGameProfile.get(loginListener);
     }
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
@@ -242,7 +251,7 @@ public class AuthenticateListener implements Listener {
                     loginSession.loginStart(start);
                     sessionMap.put(event.getNetworkManage(),loginSession);
                     //为玩家发送加密会话
-                    event.getNetworkManage().a(new PacketLoginOutEncryptionBegin("",keypair.getPublic().getEncoded(),token));
+                    event.getChannel().writeAndFlush(new PacketLoginOutEncryptionBegin("",keypair.getPublic().getEncoded(),token));
                 } else {
                     MoeLogin.plugin.setYggdrasil(name,null);
                     logger.warning("无效外置登录: " + yggdrasil);
@@ -368,7 +377,7 @@ public class AuthenticateListener implements Listener {
                     if (gameProfile != null){
                         //为玩家应用皮肤
                         EntityPlayer np = (EntityPlayer) NMSUtils.getNmsEntity(player);
-                        loginSession.initPropertiesTo(loginSession.getOnlineGameProfile(),(GameProfile) gameProfileField.get(np));
+                        loginSession.initPropertiesTo(loginSession.getOnlineGameProfile(),gameProfileField.get(np));
                     } else {
                         disconnect(network,"会话验证成功， 但登录过程中出现错误{0}");
                     }
