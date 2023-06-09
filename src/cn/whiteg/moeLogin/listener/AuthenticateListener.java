@@ -4,7 +4,6 @@ import cn.whiteg.mmocore.MMOCore;
 import cn.whiteg.mmocore.reflection.FieldAccessor;
 import cn.whiteg.mmocore.reflection.MethodInvoker;
 import cn.whiteg.mmocore.reflection.ReflectUtil;
-import cn.whiteg.mmocore.reflection.ReflectionFactory;
 import cn.whiteg.mmocore.util.NMSUtils;
 import cn.whiteg.moeLogin.MoeLogin;
 import cn.whiteg.moeLogin.Setting;
@@ -15,6 +14,7 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.exceptions.AuthenticationUnavailableException;
 import com.mojang.authlib.minecraft.InsecurePublicKeyException;
 import com.mojang.authlib.properties.Property;
+import com.mojang.authlib.properties.PropertyMap;
 import io.netty.channel.ChannelHandlerContext;
 import net.minecraft.network.NetworkManager;
 import net.minecraft.network.chat.IChatBaseComponent;
@@ -40,6 +40,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerLoginEvent;
 
 import javax.annotation.Nullable;
+import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -79,13 +80,11 @@ public class AuthenticateListener implements Listener {
     static FieldAccessor<GameProfile> loginGameProfile;
 
     static {
-        for (Field field : EntityHuman.class.getDeclaredFields())
-            if (field.getType().equals(GameProfile.class)){
-                field.setAccessible(true);
-                gameProfileField = new FieldAccessor<>(field);
-                break;
-            }
-
+        try{
+            gameProfileField = new FieldAccessor<>(ReflectUtil.getFieldFormType(EntityHuman.class,GameProfile.class));
+        }catch (NoSuchFieldException e){
+            throw new RuntimeException(e);
+        }
         //获取签名验证器
         final DedicatedServer server = NMSUtils.getNmsServer();
         for (Method m : server.getClass().getMethods()) {
@@ -168,10 +167,10 @@ public class AuthenticateListener implements Listener {
             if (manage.isPluginPacket(packet)) return;
 
             //检查服务器正在关闭
-            if (Bukkit.getServer().isStopping()){
-                disconnect(event.getNetworkManage(),"服务器正在重启,请稍等一会再重进服务器");
-                return;
-            }
+//            if (Bukkit.getServer().isStopping()){
+//                disconnect(event.getNetworkManage(),"服务器正在重启,请稍等一会再重进服务器");
+//                return;
+//            }
 
             //遍历清理Map
             if (!sessionMap.isEmpty()) synchronized (sessionMap) {
@@ -280,17 +279,14 @@ public class AuthenticateListener implements Listener {
             try{
                 //设置编码器和解码器Key
                 secretKey = encryptionBegin.a(privatekey);
-                /*
                 //spigot用
-                Cipher cipher = MinecraftEncryption.a(2,secretKey);
-                Cipher cipher1 = MinecraftEncryption.a(1,secretKey);
-                network.setupEncryption(cipher,cipher1);
-                */
+//                Cipher cipher = MinecraftEncryption.a(2,secretKey);
+//                Cipher cipher1 = MinecraftEncryption.a(1,secretKey);
+//                network.a(cipher,cipher1);
                 //paper用
                 network.setupEncryption(secretKey);
-                s = (new BigInteger(MinecraftEncryption.a("",keypair.getPublic(),secretKey))).toString(16); //这个意味不明
-//                network.a(secretKey); //旧时好像也是spigot之前用
 
+                s = (new BigInteger(MinecraftEncryption.a("",keypair.getPublic(),secretKey))).toString(16); //这个意味不明
 
 
                 /*
@@ -478,10 +474,11 @@ public class AuthenticateListener implements Listener {
 
         //应用皮肤
         public void initPropertiesTo(GameProfile olinProfile,GameProfile gameProfile) {
+            final PropertyMap properties = gameProfile.getProperties();
             for (Map.Entry<String, Collection<Property>> entry : olinProfile.getProperties().asMap().entrySet()) {
                 Iterator<Property> it = entry.getValue().iterator();
                 if (it.hasNext()){
-                    gameProfile.getProperties().put(entry.getKey(),it.next());
+                    properties.put(entry.getKey(),it.next());
                     MoeLogin.logger.info("已应用Properties: " + entry.getKey());
                 }
             }
