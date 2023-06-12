@@ -47,12 +47,13 @@ public class LoginManage {
                                 MoeLogin.logger.info("会话验证: " + loginSession.isPass());
                             }
                         }
-                        //正版登录过标记正版验证
-                        if (loginSession.getYggdrasil() == null && dc != null){
-                            if (!dc.getConfig().getBoolean("Authenticate.Success",false)){
+                        //使用在线登录过记录信息
+                        if (dc != null){
+                            //记录正版认证
+                            if (loginSession.getYggdrasil() == null && !dc.getConfig().getBoolean("Authenticate.Success",false)){
                                 dc.set("Authenticate.Success",true);
                             }
-                            //记录正版UUID
+                            //记录验证UUID
                             final GameProfile oloneGameProfile = loginSession.getOnlineGameProfile();
                             dc.set("Authenticate.UUID",oloneGameProfile.getId().toString());
                         }

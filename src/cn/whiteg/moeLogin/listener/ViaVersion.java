@@ -1,6 +1,6 @@
 package cn.whiteg.moeLogin.listener;
 
-import cn.whiteg.mmocore.util.NMSUtils;
+import cn.whiteg.mmocore.reflection.ReflectUtil;
 import cn.whiteg.moeLogin.MoeLogin;
 import cn.whiteg.moeLogin.Setting;
 import cn.whiteg.moepacketapi.api.event.PacketReceiveEvent;
@@ -25,7 +25,7 @@ public class ViaVersion implements Listener {
                 f.setAccessible(true);
                 try{
                     MinecraftVersion version = (MinecraftVersion) f.get(null);
-                    final Field field = NMSUtils.getFieldFormStructure(MinecraftVersion.class,DataVersion.class,int.class)[1];
+                    final Field field = ReflectUtil.getFieldFormStructure(MinecraftVersion.class,DataVersion.class,int.class)[1];
                     field.setAccessible(true);
                     serverProtocolVersion = (int) field.get(version);
                     break;

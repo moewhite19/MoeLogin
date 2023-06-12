@@ -167,10 +167,10 @@ public class AuthenticateListener implements Listener {
             if (manage.isPluginPacket(packet)) return;
 
             //检查服务器正在关闭
-//            if (Bukkit.getServer().isStopping()){
-//                disconnect(event.getNetworkManage(),"服务器正在重启,请稍等一会再重进服务器");
-//                return;
-//            }
+            if (Bukkit.getServer().isStopping()){
+                disconnect(event.getNetworkManage(),"服务器正在重启,请稍等一会再重进服务器");
+                return;
+            }
 
             //遍历清理Map
             if (!sessionMap.isEmpty()) synchronized (sessionMap) {
