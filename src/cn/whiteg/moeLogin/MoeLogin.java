@@ -5,6 +5,7 @@ import cn.whiteg.mmocore.MMOCore;
 import cn.whiteg.mmocore.common.CommandManage;
 import cn.whiteg.mmocore.common.PluginBase;
 import cn.whiteg.moeLogin.Filter.ConsoleFilter;
+import cn.whiteg.moeLogin.hook.RealUUID;
 import cn.whiteg.moeLogin.hook.WhoisBannedProvider;
 import cn.whiteg.moeLogin.hook.WhoisLoginTypeMsgProvider;
 import cn.whiteg.moeLogin.listener.AliasManage;
@@ -82,6 +83,7 @@ public class MoeLogin extends PluginBase {
                 new WhoisLoginTypeMsgProvider(this).register();
 //                new WhoisAliasMsgProvider(this).register();
                 new WhoisBannedProvider(this).register();
+                new RealUUID(this).register();
             });
         }
         logger.info("全部加载完成");
