@@ -42,6 +42,7 @@ import org.bukkit.event.player.PlayerLoginEvent;
 import javax.annotation.Nullable;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -310,8 +311,8 @@ public class AuthenticateListener implements Listener {
                             onlineGameProfile = MoeLogin.getMojangAPI().hasJoinedServer(gameProfile,s,this.getInetAddress());
                         else
                             onlineGameProfile = MoeLogin.getMojangAPI().hasJoinedServer(gameProfile,s,this.getInetAddress(),loginSession.getYggdrasilUrl());
-                        loginSession.setOnlineGameProfile(onlineGameProfile);
                         if (onlineGameProfile != null){
+                            loginSession.setOnlineGameProfile(onlineGameProfile);
                             //验证token
                             if (!encryptionBegin.a(token,privatekey)){
                                 throw new IllegalStateException("Protocol error");
@@ -336,9 +337,9 @@ public class AuthenticateListener implements Listener {
                             disconnect(event.getNetworkManage(),"multiplayer.disconnect.unverified_username");
                             logger.warning("无法验证用户名: " + gameProfile.getName());
                         }
-                    }catch (AuthenticationUnavailableException var3){
+                    }catch (AuthenticationUnavailableException e){
                         disconnect(event.getNetworkManage(),"multiplayer.disconnect.authservers_down");
-                        logger.warning("会话服务器正在维护: " + gameProfile.getName());
+                        logger.warning("会话服务器正在维护: " + e.getMessage());
                     }catch (IllegalStateException e){
                         disconnect(event.getNetworkManage(),e.getMessage());
                     }

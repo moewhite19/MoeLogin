@@ -14,6 +14,8 @@ public class ConsoleFilter implements Filter {
     static Filter originalFilter = null;
     private static log4jFilter log4jFilter;
 
+    //屏蔽玩家在登录时输入的指令，使其后台无法看到。
+    //但是在spigot已经无法工作了
     public static void setupConsoleFilter() {
         try{
             Class.forName("org.apache.logging.log4j.core.filter.AbstractFilter");
