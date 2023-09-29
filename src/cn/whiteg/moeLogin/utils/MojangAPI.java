@@ -1,33 +1,36 @@
 package cn.whiteg.moeLogin.utils;
 
-import cn.whiteg.moeLogin.MoeLogin;
-import cn.whiteg.moeLogin.Setting;
+import cn.whiteg.mmocore.reflection.ReflectUtil;
+import cn.whiteg.mmocore.reflection.ReflectionFactory;
 import com.google.gson.*;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.HttpAuthenticationService;
 import com.mojang.authlib.exceptions.AuthenticationException;
 import com.mojang.authlib.exceptions.AuthenticationUnavailableException;
-import com.mojang.authlib.exceptions.InvalidCredentialsException;
-import com.mojang.authlib.exceptions.UserMigratedException;
+import com.mojang.authlib.exceptions.MinecraftClientException;
 import com.mojang.authlib.minecraft.MinecraftSessionService;
+import com.mojang.authlib.minecraft.client.MinecraftClient;
 import com.mojang.authlib.properties.PropertyMap;
+import com.mojang.authlib.yggdrasil.ProfileActionType;
+import com.mojang.authlib.yggdrasil.ProfileResult;
 import com.mojang.authlib.yggdrasil.YggdrasilMinecraftSessionService;
+import com.mojang.authlib.yggdrasil.request.JoinMinecraftServerRequest;
 import com.mojang.authlib.yggdrasil.response.HasJoinedMinecraftServerResponse;
+import com.mojang.authlib.yggdrasil.response.ProfileAction;
 import com.mojang.authlib.yggdrasil.response.ProfileSearchResultsResponse;
-import com.mojang.authlib.yggdrasil.response.Response;
 import com.mojang.util.UUIDTypeAdapter;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.dedicated.DedicatedServer;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.Validate;
 import org.bukkit.Bukkit;
-import org.bukkit.craftbukkit.v1_20_R1.CraftServer;
+import org.bukkit.craftbukkit.v1_20_R2.CraftServer;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
@@ -37,14 +40,14 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class MojangAPI {
     static Method getMinecraftSessionService;
 
     static {
-
-
         for (Method method : MinecraftServer.class.getMethods()) {
             if (method.getReturnType().equals(MinecraftSessionService.class)){
                 method.setAccessible(true);
@@ -57,8 +60,18 @@ public class MojangAPI {
     //private static final String[] WHITELISTED_DOMAINS = new String[]{".minecraft.net",".mojang.com"};
     private final Gson gson;
     //String baseUrl = env.getSessionHost() + "/session/minecraft/";
-    String MOJANG_BASE_URL = "https://sessionserver.mojang.com/session/minecraft/";  //Mojang会话服务器
+    public static final String MOJANG_BASE_URL = "https://sessionserver.mojang.com/session/minecraft/";  //Mojang会话服务器
+    URL JOIN_URL;
+    {
+        try{
+            JOIN_URL = new URL(MOJANG_BASE_URL.concat("join"));
+        }catch (MalformedURLException e){
+            throw new RuntimeException(e);
+        }
+    }
+
     YggdrasilMinecraftSessionService yggdrasilMinecraftSessionService;
+    final MinecraftClient client;
 
     public MojangAPI() {
         GsonBuilder builder = new GsonBuilder();
@@ -77,6 +90,19 @@ public class MojangAPI {
         if (sessionService instanceof YggdrasilMinecraftSessionService){
             yggdrasilMinecraftSessionService = (YggdrasilMinecraftSessionService) sessionService;
         }
+        try{
+            Field field = ReflectUtil.getFieldFormType(sessionService.getClass(),MinecraftClient.class);
+            field.setAccessible(true);
+            client = (MinecraftClient) field.get(sessionService);
+            //设置超时
+            ReflectionFactory.createFieldAccessor(MinecraftClient.class.getField("CONNECT_TIMEOUT_MS")).setLong(null,15000);
+            ReflectionFactory.createFieldAccessor(MinecraftClient.class.getField("READ_TIMEOUT_MS")).setLong(null,15000);
+
+
+        }catch (NoSuchFieldException | IllegalAccessException e){
+            throw new RuntimeException(e);
+        }
+
     }
 
     public URL constantURL(String url) {
@@ -87,13 +113,24 @@ public class MojangAPI {
         }
     }
 
+    //参考类名YggdrasilMinecraftSessionService
+    public void joinServer(UUID profileId,String authenticationToken,String serverId) throws AuthenticationException {
+        JoinMinecraftServerRequest request = new JoinMinecraftServerRequest(authenticationToken,profileId,serverId);
+
+        try{
+            this.client.post(this.JOIN_URL,request,Void.class);
+        }catch (MinecraftClientException var6){
+            throw var6.toAuthenticationException();
+        }
+    }
+
     //正版验证
-    public GameProfile hasJoinedServer(GameProfile user,String serverId,InetAddress address) throws AuthenticationUnavailableException {
+    public ProfileResult hasJoinedServer(GameProfile user,String serverId,InetAddress address) throws AuthenticationUnavailableException {
         return hasJoinedServer(user,serverId,address,MOJANG_BASE_URL);
     }
 
     //验证玩家会话
-    public GameProfile hasJoinedServer(GameProfile user,String serverId,InetAddress address,String baseUrl) throws AuthenticationUnavailableException {
+    public ProfileResult hasJoinedServer(GameProfile user,String serverId,InetAddress address,String baseUrl) throws AuthenticationUnavailableException {
         Map<String, Object> arguments = new HashMap<>(3);
         arguments.put("username",user.getName());
         arguments.put("serverId",serverId);
@@ -102,50 +139,47 @@ public class MojangAPI {
         }
 
         //生成服务器会话URL
-        URL url = HttpAuthenticationService.concatenateURL(constantURL(baseUrl + "hasJoined"),HttpAuthenticationService.buildQuery(arguments));
+        URL url = HttpAuthenticationService.concatenateURL(constantURL(baseUrl.concat("hasJoined")),HttpAuthenticationService.buildQuery(arguments));
 
-        try{
-            HasJoinedMinecraftServerResponse response = makeRequest(url,null,HasJoinedMinecraftServerResponse.class);
-            if (response != null && response.getId() != null){
-                GameProfile result = new GameProfile(response.getId(),user.getName());
-                if (response.getProperties() != null){
-                    result.getProperties().putAll(response.getProperties());
-                }
-
-                return result;
-            } else {
-                return null;
+        HasJoinedMinecraftServerResponse response = this.client.get(url,HasJoinedMinecraftServerResponse.class);
+        if (response != null && response.id() != null){
+            GameProfile result = new GameProfile(response.id(),user.getName());
+            if (response.properties() != null){
+                result.getProperties().putAll(response.properties());
             }
-        }catch (AuthenticationException var9){
+
+            Set<ProfileActionType> profileActions = response.profileActions().stream().map(ProfileAction::type).collect(Collectors.toSet());
+            return new ProfileResult(result,profileActions);
+        } else {
             return null;
         }
     }
 
 
-    public <T extends Response> T makeRequest(URL url,Object input,Class<T> classOfT) throws AuthenticationException {
-        try{
-            String jsonResult = input == null ? this.performGetRequest(url) : this.performPostRequest(url,gson.toJson(input),"application/json");
-            if (Setting.DEBUG){
-                MoeLogin.logger.info("访问URL: " + url.toString());
-            }
-            T result = this.gson.fromJson(jsonResult,classOfT);
-            if (result == null){
-                return null;
-            } else if (StringUtils.isNotBlank(result.getError())){
-                if ("UserMigratedException".equals(result.getCause())){
-                    throw new UserMigratedException(result.getErrorMessage());
-                } else if ("ForbiddenOperationException".equals(result.getError())){
-                    throw new InvalidCredentialsException(result.getErrorMessage());
-                } else {
-                    throw new AuthenticationException(result.getErrorMessage());
-                }
-            } else {
-                return result;
-            }
-        }catch (IllegalStateException | JsonParseException | IOException var6){
-            throw new AuthenticationUnavailableException("Cannot contact authentication server",var6);
-        }
-    }
+//    public <T extends Response> T makeRequest(URL url,Object input,Class<T> classOfT) throws AuthenticationException {
+//        try{
+//            String jsonResult = input == null ? this.performGetRequest(url) : this.performPostRequest(url,gson.toJson(input),"application/json");
+//            if (Setting.DEBUG){
+//                MoeLogin.logger.info("访问URL: " + url.toString());
+//            }
+//            T result = this.gson.fromJson(jsonResult,classOfT);
+//            if (result == null){
+//                return null;
+//            } else if (StringUtils.isNotBlank(result.getError())){
+//                if ("UserMigratedException".equals(result.getCause())){
+//                    throw new UserMigratedException(result.getErrorMessage());
+//                } else if ("ForbiddenOperationException".equals(result.getError())){
+//                    throw new InvalidCredentialsException(result.getErrorMessage());
+//                } else {
+//                    throw new AuthenticationException(result.getErrorMessage());
+//                }
+//            } else {
+//                return result;
+//            }
+//        }catch (IllegalStateException | JsonParseException | IOException var6){
+//            throw new AuthenticationUnavailableException("Cannot contact authentication server",var6);
+//        }
+//    }
 
     public String performGetRequest(URL url) throws IOException {
         Validate.notNull(url);
