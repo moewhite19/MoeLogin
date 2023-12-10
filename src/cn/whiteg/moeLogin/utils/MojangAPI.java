@@ -1,43 +1,43 @@
 package cn.whiteg.moeLogin.utils;
 
 import cn.whiteg.mmocore.reflection.ReflectUtil;
-import cn.whiteg.mmocore.reflection.ReflectionFactory;
-import com.google.gson.*;
+import cn.whiteg.moeLogin.MoeLogin;
+import cn.whiteg.moeLogin.Setting;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.HttpAuthenticationService;
 import com.mojang.authlib.exceptions.AuthenticationException;
 import com.mojang.authlib.exceptions.AuthenticationUnavailableException;
 import com.mojang.authlib.exceptions.MinecraftClientException;
+import com.mojang.authlib.exceptions.MinecraftClientHttpException;
 import com.mojang.authlib.minecraft.MinecraftSessionService;
 import com.mojang.authlib.minecraft.client.MinecraftClient;
-import com.mojang.authlib.properties.PropertyMap;
+import com.mojang.authlib.minecraft.client.ObjectMapper;
 import com.mojang.authlib.yggdrasil.ProfileActionType;
 import com.mojang.authlib.yggdrasil.ProfileResult;
 import com.mojang.authlib.yggdrasil.YggdrasilMinecraftSessionService;
 import com.mojang.authlib.yggdrasil.request.JoinMinecraftServerRequest;
+import com.mojang.authlib.yggdrasil.response.ErrorResponse;
 import com.mojang.authlib.yggdrasil.response.HasJoinedMinecraftServerResponse;
 import com.mojang.authlib.yggdrasil.response.ProfileAction;
-import com.mojang.authlib.yggdrasil.response.ProfileSearchResultsResponse;
-import com.mojang.util.UUIDTypeAdapter;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.dedicated.DedicatedServer;
-import org.apache.commons.io.Charsets;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.Validate;
 import org.bukkit.Bukkit;
-import org.bukkit.craftbukkit.v1_20_R2.CraftServer;
+import org.bukkit.craftbukkit.v1_20_R3.CraftServer;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Type;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -46,6 +46,7 @@ import java.util.stream.Collectors;
 
 public class MojangAPI {
     static Method getMinecraftSessionService;
+    static ObjectMapper objectMapper;
 
     static {
         for (Method method : MinecraftServer.class.getMethods()) {
@@ -58,10 +59,10 @@ public class MojangAPI {
 
     //private static final String HAS_JOINED_URL = "https://sessionserver.mojang.com/session/minecraft/hasJoined?username=%s&serverId=%s";
     //private static final String[] WHITELISTED_DOMAINS = new String[]{".minecraft.net",".mojang.com"};
-    private final Gson gson;
     //String baseUrl = env.getSessionHost() + "/session/minecraft/";
     public static final String MOJANG_BASE_URL = "https://sessionserver.mojang.com/session/minecraft/";  //Mojang会话服务器
     URL JOIN_URL;
+
     {
         try{
             JOIN_URL = new URL(MOJANG_BASE_URL.concat("join"));
@@ -71,15 +72,9 @@ public class MojangAPI {
     }
 
     YggdrasilMinecraftSessionService yggdrasilMinecraftSessionService;
-    final MinecraftClient client;
+    MinecraftClient client;
 
     public MojangAPI() {
-        GsonBuilder builder = new GsonBuilder();
-        builder.registerTypeAdapter(GameProfile.class,new GameProfileSerializer());
-        builder.registerTypeAdapter(PropertyMap.class,new PropertyMap.Serializer());
-        builder.registerTypeAdapter(UUID.class,new UUIDTypeAdapter());
-        builder.registerTypeAdapter(ProfileSearchResultsResponse.class,new com.mojang.authlib.yggdrasil.response.ProfileSearchResultsResponse.Serializer());
-        this.gson = builder.create();
         DedicatedServer server = ((CraftServer) Bukkit.getServer()).getServer();
         MinecraftSessionService sessionService;
         try{
@@ -94,10 +89,9 @@ public class MojangAPI {
             Field field = ReflectUtil.getFieldFormType(sessionService.getClass(),MinecraftClient.class);
             field.setAccessible(true);
             client = (MinecraftClient) field.get(sessionService);
-            //设置超时
-            ReflectionFactory.createFieldAccessor(MinecraftClient.class.getField("CONNECT_TIMEOUT_MS")).setLong(null,15000);
-            ReflectionFactory.createFieldAccessor(MinecraftClient.class.getField("READ_TIMEOUT_MS")).setLong(null,15000);
-
+            field = ReflectUtil.getFieldFormType(client.getClass(),ObjectMapper.class);
+            field.setAccessible(true);
+            objectMapper = (ObjectMapper) field.get(client);
 
         }catch (NoSuchFieldException | IllegalAccessException e){
             throw new RuntimeException(e);
@@ -113,12 +107,14 @@ public class MojangAPI {
         }
     }
 
-    //参考类名YggdrasilMinecraftSessionService
+    /*
+     * 参考类名YggdrasilMinecraftSessionService.class
+     */
     public void joinServer(UUID profileId,String authenticationToken,String serverId) throws AuthenticationException {
         JoinMinecraftServerRequest request = new JoinMinecraftServerRequest(authenticationToken,profileId,serverId);
 
         try{
-            this.client.post(this.JOIN_URL,request,Void.class);
+            this.post(this.JOIN_URL,request,Void.class);
         }catch (MinecraftClientException var6){
             throw var6.toAuthenticationException();
         }
@@ -141,7 +137,7 @@ public class MojangAPI {
         //生成服务器会话URL
         URL url = HttpAuthenticationService.concatenateURL(constantURL(baseUrl.concat("hasJoined")),HttpAuthenticationService.buildQuery(arguments));
 
-        HasJoinedMinecraftServerResponse response = this.client.get(url,HasJoinedMinecraftServerResponse.class);
+        HasJoinedMinecraftServerResponse response = get(url,HasJoinedMinecraftServerResponse.class);
         if (response != null && response.id() != null){
             GameProfile result = new GameProfile(response.id(),user.getName());
             if (response.properties() != null){
@@ -156,152 +152,115 @@ public class MojangAPI {
     }
 
 
-//    public <T extends Response> T makeRequest(URL url,Object input,Class<T> classOfT) throws AuthenticationException {
-//        try{
-//            String jsonResult = input == null ? this.performGetRequest(url) : this.performPostRequest(url,gson.toJson(input),"application/json");
-//            if (Setting.DEBUG){
-//                MoeLogin.logger.info("访问URL: " + url.toString());
-//            }
-//            T result = this.gson.fromJson(jsonResult,classOfT);
-//            if (result == null){
-//                return null;
-//            } else if (StringUtils.isNotBlank(result.getError())){
-//                if ("UserMigratedException".equals(result.getCause())){
-//                    throw new UserMigratedException(result.getErrorMessage());
-//                } else if ("ForbiddenOperationException".equals(result.getError())){
-//                    throw new InvalidCredentialsException(result.getErrorMessage());
-//                } else {
-//                    throw new AuthenticationException(result.getErrorMessage());
-//                }
-//            } else {
-//                return result;
-//            }
-//        }catch (IllegalStateException | JsonParseException | IOException var6){
-//            throw new AuthenticationUnavailableException("Cannot contact authentication server",var6);
-//        }
-//    }
-
-    public String performGetRequest(URL url) throws IOException {
-        Validate.notNull(url);
+    /*
+     * 下面都是摘自MinecraftClient.class
+     * 因为无法重写私有的createUrlConnection方法，所以只能整个都把他的方法都抄过来
+     * ----------------------------------
+     */
+    @Nullable
+    public <T> T get(URL url,Class<T> responseClass) {
+        org.apache.commons.lang3.Validate.notNull(url);
+        org.apache.commons.lang3.Validate.notNull(responseClass);
         HttpURLConnection connection = this.createUrlConnection(url);
-        //LOGGER.debug("Reading data from " + url);
+//        if (this.accessToken != null){
+//            connection.setRequestProperty("Authorization","Bearer " + this.accessToken);
+//        }
+
+        return this.readInputStream(url,responseClass,connection);
+    }
+
+    @Nullable
+    public <T> T post(URL url,Class<T> responseClass) {
+        org.apache.commons.lang3.Validate.notNull(url);
+        org.apache.commons.lang3.Validate.notNull(responseClass);
+        HttpURLConnection connection = this.postInternal(url,new byte[0]);
+        return this.readInputStream(url,responseClass,connection);
+    }
+
+    @Nullable
+    public <T> T post(URL url,Object body,Class<T> responseClass) {
+        org.apache.commons.lang3.Validate.notNull(url);
+        org.apache.commons.lang3.Validate.notNull(body);
+        Validate.notNull(responseClass);
+        String bodyAsJson = objectMapper.writeValueAsString(body);
+        byte[] postAsBytes = bodyAsJson.getBytes(StandardCharsets.UTF_8);
+        HttpURLConnection connection = this.postInternal(url,postAsBytes);
+        return this.readInputStream(url,responseClass,connection);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Nullable
+    private <T> T readInputStream(URL url,Class<T> clazz,HttpURLConnection connection) {
         InputStream inputStream = null;
 
-        String var6;
+        Object var7;
         try{
+            int status = connection.getResponseCode();
             String result;
-            try{
-                inputStream = connection.getInputStream();
-                result = IOUtils.toString(inputStream,Charsets.UTF_8);
-                //LOGGER.debug("Successful read, server response was " + connection.getResponseCode());
-                //LOGGER.debug("Response: " + result);
-                return result;
-            }catch (IOException var10){
-                IOUtils.closeQuietly(inputStream);
+            if (status >= 400){
                 inputStream = connection.getErrorStream();
-                if (inputStream == null){
-                    //LOGGER.debug("Request failed", var10);
-                    throw var10;
+                if (inputStream != null){
+                    result = IOUtils.toString(inputStream,StandardCharsets.UTF_8);
+                    ErrorResponse errorResponse = objectMapper.readValue(result,ErrorResponse.class);
+                    throw new MinecraftClientHttpException(status,errorResponse);
                 }
 
-                //LOGGER.debug("Reading error page from " + url);
-                result = IOUtils.toString(inputStream,Charsets.UTF_8);
-                //LOGGER.debug("Successful read, server response was " + connection.getResponseCode());
-                //LOGGER.debug("Response: " + result);
-                var6 = result;
+                throw new MinecraftClientHttpException(status);
             }
+
+            inputStream = connection.getInputStream();
+            result = IOUtils.toString(inputStream,StandardCharsets.UTF_8);
+            if (result.isEmpty()){
+                var7 = null;
+                return (T) var7;
+            }
+
+            var7 = objectMapper.readValue(result,clazz);
+        }catch (IOException var11){
+            throw new MinecraftClientException(MinecraftClientException.ErrorType.SERVICE_UNAVAILABLE,"Failed to read from " + url + " due to " + var11.getMessage(),var11);
         } finally {
             IOUtils.closeQuietly(inputStream);
         }
 
-        return var6;
+        return (T) var7;
     }
 
-    public String performPostRequest(URL url,String post,String contentType) throws IOException {
-        Validate.notNull(url);
-        Validate.notNull(post);
-        Validate.notNull(contentType);
+    private HttpURLConnection postInternal(URL url,byte[] postAsBytes) {
         HttpURLConnection connection = this.createUrlConnection(url);
-        byte[] postAsBytes = post.getBytes(Charsets.UTF_8);
-        connection.setRequestProperty("Content-Type",contentType + "; charset=utf-8");
-        connection.setRequestProperty("Content-Length","" + postAsBytes.length);
-        connection.setDoOutput(true);
-        //LOGGER.debug("Writing POST data to " + url + ": " + post);
         OutputStream outputStream = null;
 
         try{
+            connection.setRequestProperty("Content-Type","application/json; charset=utf-8");
+            connection.setRequestProperty("Content-Length","" + postAsBytes.length);
+//            if (this.accessToken != null) {
+//                connection.setRequestProperty("Authorization", "Bearer " + this.accessToken);
+//            }
+
+            connection.setRequestMethod("POST");
+            connection.setDoOutput(true);
             outputStream = connection.getOutputStream();
             IOUtils.write(postAsBytes,outputStream);
+        }catch (IOException var9){
+            throw new MinecraftClientException(MinecraftClientException.ErrorType.SERVICE_UNAVAILABLE,"Failed to POST " + url,var9);
         } finally {
             IOUtils.closeQuietly(outputStream);
         }
 
-        //LOGGER.debug("Reading data from " + url);
-        InputStream inputStream = null;
-
-        String var10;
-        try{
-            String result = IOUtils.toString(inputStream,Charsets.UTF_8);
-            try{
-                inputStream = connection.getInputStream();
-                //LOGGER.debug("Successful read, server response was " + connection.getResponseCode());
-                //LOGGER.debug("Response: " + result);
-                result = result;
-                return result;
-            }catch (IOException var19){
-                IOUtils.closeQuietly(inputStream);
-                inputStream = connection.getErrorStream();
-                if (inputStream == null){
-//                    LOGGER.debug("Request failed", var19);
-                    throw var19;
-                }
-
-//                LOGGER.debug("Reading error page from " + url);
-                result = IOUtils.toString(inputStream,Charsets.UTF_8);
-//                LOGGER.debug("Successful read, server response was " + connection.getResponseCode());
-//                LOGGER.debug("Response: " + result);
-                var10 = result;
-            }
-        } finally {
-            IOUtils.closeQuietly(inputStream);
-        }
-
-        return var10;
-    }
-
-    protected HttpURLConnection createUrlConnection(URL url) throws IOException {
-        Validate.notNull(url);
-        //LOGGER.debug("Opening connection to " + url);
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-        //HttpURLConnection connection = (HttpURLConnection)url.openConnection(this.proxy);
-        connection.setConnectTimeout(15000);
-        connection.setReadTimeout(15000);
-        connection.setUseCaches(false);
         return connection;
     }
 
-    private static class GameProfileSerializer implements JsonSerializer<GameProfile>, JsonDeserializer<GameProfile> {
-        private GameProfileSerializer() {
-        }
-
-        public GameProfile deserialize(JsonElement json,Type typeOfT,JsonDeserializationContext context) throws JsonParseException {
-            JsonObject object = (JsonObject) json;
-            UUID id = object.has("id") ? (UUID) context.deserialize(object.get("id"),UUID.class) : null;
-            String name = object.has("name") ? object.getAsJsonPrimitive("name").getAsString() : null;
-            return new GameProfile(id,name);
-        }
-
-        public JsonElement serialize(GameProfile src,Type typeOfSrc,JsonSerializationContext context) {
-            JsonObject result = new JsonObject();
-            if (src.getId() != null){
-                result.add("id",context.serialize(src.getId()));
+    private HttpURLConnection createUrlConnection(URL url) {
+        try{
+            if (Setting.DEBUG){
+                MoeLogin.logger.info("访问URL: " + url.toString());
             }
-
-            if (src.getName() != null){
-                result.addProperty("name",src.getName());
-            }
-
-            return result;
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setConnectTimeout(15000);
+            connection.setReadTimeout(15000);
+            connection.setUseCaches(false);
+            return connection;
+        }catch (IOException var3){
+            throw new MinecraftClientException(MinecraftClientException.ErrorType.SERVICE_UNAVAILABLE,"Failed connecting to " + url,var3);
         }
     }
 

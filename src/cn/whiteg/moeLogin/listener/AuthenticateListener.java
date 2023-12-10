@@ -283,7 +283,7 @@ public class AuthenticateListener implements Listener {
             logger.info("收到玩家返回的会话验证: " + gameProfile.getName());
 
             SecretKey secretKey;
-            String s;
+            String serverId;
             PrivateKey privatekey = keypair.getPrivate();
 
             try{
@@ -296,7 +296,7 @@ public class AuthenticateListener implements Listener {
                 //paper用
                 network.setupEncryption(secretKey);
 
-                s = (new BigInteger(MinecraftEncryption.a("",keypair.getPublic(),secretKey))).toString(16); //这个意味不明
+                serverId = (new BigInteger(MinecraftEncryption.a("",keypair.getPublic(),secretKey))).toString(16); //这个意味不明
 
 
                 /*
@@ -317,9 +317,9 @@ public class AuthenticateListener implements Listener {
                     try{
                         ProfileResult profileResult;
                         if (loginSession.yggdrasil == null)
-                            profileResult = MoeLogin.getMojangAPI().hasJoinedServer(gameProfile,s,this.getInetAddress());
+                            profileResult = MoeLogin.getMojangAPI().hasJoinedServer(gameProfile,serverId,this.getInetAddress());
                         else
-                            profileResult = MoeLogin.getMojangAPI().hasJoinedServer(gameProfile,s,this.getInetAddress(),loginSession.getYggdrasilUrl());
+                            profileResult = MoeLogin.getMojangAPI().hasJoinedServer(gameProfile,serverId,this.getInetAddress(),loginSession.getYggdrasilUrl());
                         if (profileResult != null){
                             GameProfile profile = profileResult.profile();
                             loginSession.setOnlineGameProfile(profileResult.profile());
