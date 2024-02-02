@@ -12,6 +12,7 @@ import cn.whiteg.moepacketapi.PlayerPacketManage;
 import cn.whiteg.moepacketapi.api.event.PacketReceiveEvent;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.exceptions.AuthenticationUnavailableException;
+import com.mojang.authlib.exceptions.MinecraftClientException;
 import com.mojang.authlib.properties.Property;
 import com.mojang.authlib.properties.PropertyMap;
 import com.mojang.authlib.yggdrasil.ProfileResult;
@@ -347,10 +348,12 @@ public class AuthenticateListener implements Listener {
                             disconnect(event.getNetworkManage(),"multiplayer.disconnect.unverified_username");
                             logger.warning("无法验证用户名: " + gameProfile.getName());
                         }
-                    }catch (AuthenticationUnavailableException e){
+                    }catch (AuthenticationUnavailableException | MinecraftClientException e){
                         disconnect(event.getNetworkManage(),"multiplayer.disconnect.authservers_down");
                         logger.warning("会话服务器正在维护: " + e.getMessage());
                     }catch (IllegalStateException e){
+                        //noinspection CallToPrintStackTrace
+                        e.printStackTrace();
                         disconnect(event.getNetworkManage(),e.getMessage());
                     }
                 }
