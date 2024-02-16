@@ -1,4 +1,4 @@
-ver: 5
+ver: 6
 debug: false
 #保存玩家ID，如果下次进入服务器时ID一致自动登录
 AutoLogin: false
@@ -36,6 +36,15 @@ Authenticate:
   Yggdrasil:
     LittleSkin: 'https://mcskin.littleservice.cn/api/yggdrasil/sessionserver/session/minecraft/'
     Blessing: 'https://skin.prinzeugen.net/api/yggdrasil/sessionserver/session/minecraft/'
+
+#使用代理
+HttpProxy:
+  Enable: false
+  #[DIRECT,SOCKS,HTTP]
+  Type: 'SOCKS'
+  IP: '127.0.0.1'
+  Port: '1080'
+
 #允许跨协议版本号
 ViaVersion:
   #- 735 #1.16

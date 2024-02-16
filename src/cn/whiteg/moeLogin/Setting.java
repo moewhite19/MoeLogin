@@ -7,6 +7,8 @@ import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +38,7 @@ public class Setting {
     public static boolean antiDeathHandle = false;
     public static boolean keepSkin = true;
     public static String defaultYggdrasil = null;
+    public static Proxy proxy = null;
 
     public static void reload() {
         MoeLogin plugin = MoeLogin.plugin;
@@ -83,5 +86,22 @@ public class Setting {
             }
         }
         viaVersion = config.getIntegerList("ViaVersion");
+
+        proxy:
+        {
+            cs = config.getConfigurationSection("HttpProxy");
+            if (cs != null && cs.getBoolean("Enable")){
+                try{
+                    proxy = new Proxy(Proxy.Type.valueOf(cs.getString("Type","SOCKS")),new InetSocketAddress(cs.getString("IP","127.0.0.1"),cs.getInt("Port")));
+                    plugin.logger.info("当前已启用代理: " + proxy.address().toString());
+                    break proxy;
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
+            }
+            proxy = Proxy.NO_PROXY;
+            MoeLogin.mojangAPI.setProxy(proxy);
+        }
+
     }
 }

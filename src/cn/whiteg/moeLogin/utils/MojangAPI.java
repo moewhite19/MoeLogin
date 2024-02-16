@@ -1,6 +1,8 @@
 package cn.whiteg.moeLogin.utils;
 
+import cn.whiteg.mmocore.reflection.FieldAccessor;
 import cn.whiteg.mmocore.reflection.ReflectUtil;
+import cn.whiteg.mmocore.reflection.ReflectionFactory;
 import cn.whiteg.moeLogin.MoeLogin;
 import cn.whiteg.moeLogin.Setting;
 import com.mojang.authlib.GameProfile;
@@ -33,10 +35,7 @@ import java.io.OutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.HttpURLConnection;
-import java.net.InetAddress;
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -96,7 +95,6 @@ public class MojangAPI {
         }catch (NoSuchFieldException | IllegalAccessException e){
             throw new RuntimeException(e);
         }
-
     }
 
     public URL constantURL(String url) {
@@ -261,6 +259,15 @@ public class MojangAPI {
             return connection;
         }catch (IOException var3){
             throw new MinecraftClientException(MinecraftClientException.ErrorType.SERVICE_UNAVAILABLE,"Failed connecting to " + url,var3);
+        }
+    }
+
+    public void setProxy(Proxy py) {
+        try{
+            final FieldAccessor<Object> proxy = ReflectionFactory.createFieldAccessor(MinecraftClient.class.getDeclaredField("proxy"));
+            proxy.set(client,proxy);
+        }catch (NoSuchFieldException e){
+            e.printStackTrace();
         }
     }
 
