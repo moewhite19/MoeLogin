@@ -1,8 +1,10 @@
 package cn.whiteg.moeLogin.listener;
 
+import cn.whiteg.mmocore.DataCon;
 import cn.whiteg.mmocore.MMOCore;
 import cn.whiteg.mmocore.reflection.FieldAccessor;
 import cn.whiteg.mmocore.reflection.ReflectUtil;
+import cn.whiteg.mmocore.util.FileMan;
 import cn.whiteg.mmocore.util.NMSUtils;
 import cn.whiteg.moeLogin.MoeLogin;
 import cn.whiteg.moeLogin.Setting;
@@ -315,8 +317,8 @@ public class AuthenticateListener implements Listener {
                         else
                             profileResult = MoeLogin.getMojangAPI().hasJoinedServer(gameProfile,serverId,this.getInetAddress(),loginSession.getYggdrasilUrl());
                         if (profileResult != null){
-                            GameProfile profile = profileResult.profile();
-                            loginSession.setOnlineGameProfile(profileResult.profile());
+                            GameProfile onlineProfile = profileResult.profile();
+                            loginSession.setOnlineGameProfile(onlineProfile);
                             //验证token
                             if (!encryptionBegin.a(token,privatekey)){
                                 throw new IllegalStateException("Protocol error");
@@ -325,12 +327,30 @@ public class AuthenticateListener implements Listener {
                                 return;
                             }
                             //验证完成,恢复登录状态
-                            logger.info("会话验证完成: " + profile.getName());
-                            if (!loginSession.getGameProfile().getName().equalsIgnoreCase(profile.getName())){
-                                logger.warning("会话ID不一致,玩家名字为: " + gameProfile.getName() + ", 会话验证获得的ID为: " + profile.getName());
+                            logger.info("会话验证完成: " + onlineProfile.getName());
+                            if (!loginSession.getGameProfile().getName().equalsIgnoreCase(onlineProfile.getName())){
+                                logger.warning("会话ID不一致,玩家名字为: " + gameProfile.getName() + ", 会话验证获得的ID为: " + onlineProfile.getName());
                                 disconnect(network,"阁下ID与会话ID不一致");
                                 return;
                             }
+
+                            //检查正版玩家是否重命名
+                            if (loginSession.getYggdrasil() == null){
+                                final String lateName = MoeLogin.plugin.getPremiumPlayerManage().getPlayer(onlineProfile.getId());
+                                if(lateName != null){
+                                    final String nowName = gameProfile.getName();
+                                    if (!lateName.equals(nowName)){
+                                        MoeLogin.logger.warning("§b正版玩家" + nowName + "曾用名" + lateName);
+                                        final DataCon dc = MMOCore.getPlayerData(lateName);
+                                        if (dc != null){
+                                            FileMan.rename(Bukkit.getConsoleSender(),dc,nowName);
+                                        }
+                                    }
+                                }
+
+                            }
+
+
                             PacketLoginInStart packet = new PacketLoginInStart(gameProfile.getName(),MMOCore.getUUID(gameProfile.getName()));
                             manage.recieveClientPacket(network,packet); //恢复登录状态
                             loginSession.pass();

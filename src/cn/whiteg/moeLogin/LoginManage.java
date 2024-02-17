@@ -17,8 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import static cn.whiteg.moeLogin.Setting.passPat;
-import static cn.whiteg.moeLogin.Setting.sha1Pat;
+import static cn.whiteg.moeLogin.Setting.*;
 
 public class LoginManage {
     final public static Map<UUID, PlayerLogin> noLogin = Collections.synchronizedMap(new HashMap<>());
@@ -50,12 +49,12 @@ public class LoginManage {
                         //使用在线登录过记录信息
                         if (dc != null){
                             //记录正版认证
-                            if (loginSession.getYggdrasil() == null && !dc.getConfig().getBoolean("Authenticate.Success",false)){
-                                dc.set("Authenticate.Success",true);
+                            if (loginSession.getYggdrasil() == null && !dc.getConfig().getBoolean(successKey,false)){
+                                dc.set(successKey,true);
                             }
                             //记录验证UUID
                             final GameProfile oloneGameProfile = loginSession.getOnlineGameProfile();
-                            dc.set("Authenticate.UUID",oloneGameProfile.getId().toString());
+                            dc.set(uuidKey,oloneGameProfile.getId().toString());
                         }
                         //标记最近登录时间
                         if (dc != null){

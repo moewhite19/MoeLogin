@@ -2,6 +2,8 @@ package cn.whiteg.moeLogin;
 
 import cn.whiteg.mmocore.DataCon;
 import cn.whiteg.mmocore.MMOCore;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -25,6 +27,8 @@ public class Setting {
     public static String sha1Pat = "Authenticate.password.sha1";
     public static String authPath = "Authenticate.premium";
     public static String yggdrasilTypeKey = "Authenticate.yggdrasil";
+    public static String successKey = "Authenticate.Success";
+    public static String uuidKey = "Authenticate.UUID";
     final public static String banPath = "Player.ban";
     public static String loginmsg = "§b聊天输入 “/” + 密码 来登录";
     public static String regmsg = "§b聊天输入 “/” + 密码来注册 如 §3/mengbai520";

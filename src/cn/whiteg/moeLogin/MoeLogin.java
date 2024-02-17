@@ -8,14 +8,12 @@ import cn.whiteg.moeLogin.Filter.ConsoleFilter;
 import cn.whiteg.moeLogin.hook.RealUUID;
 import cn.whiteg.moeLogin.hook.WhoisBannedProvider;
 import cn.whiteg.moeLogin.hook.WhoisLoginTypeMsgProvider;
-import cn.whiteg.moeLogin.listener.AliasManage;
-import cn.whiteg.moeLogin.listener.AuthenticateListener;
-import cn.whiteg.moeLogin.listener.LoginListener;
-import cn.whiteg.moeLogin.listener.ViaVersion;
+import cn.whiteg.moeLogin.listener.*;
 import cn.whiteg.moeLogin.utils.MojangAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 
+import java.io.File;
 import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -29,6 +27,7 @@ public class MoeLogin extends PluginBase {
     public static MoeLogin plugin;
     public static CommandSender console;
     public static MojangAPI mojangAPI = new MojangAPI();
+    public PremiumPlayerManage premiumPlayerManage;
     public CommandManage mainCommand;
     AliasManage aliasManage;
     private AuthenticateListener authenticateListener;
@@ -73,6 +72,9 @@ public class MoeLogin extends PluginBase {
         if (Setting.authenticate){
             authenticateListener = new AuthenticateListener();
             regListener(authenticateListener);
+            premiumPlayerManage = new PremiumPlayerManage(new File(plugin.getDataFolder(),"premium.map"));
+            regListener(premiumPlayerManage);
+            premiumPlayerManage.load();
         }
         ConsoleFilter.setupConsoleFilter();
         //注册whois指令的登录方式
@@ -158,5 +160,9 @@ public class MoeLogin extends PluginBase {
 
     public AliasManage getAliasManage() {
         return aliasManage;
+    }
+
+    public PremiumPlayerManage getPremiumPlayerManage() {
+        return premiumPlayerManage;
     }
 }

@@ -31,6 +31,10 @@ public class LoginListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerJoin(PlayerJoinEvent event) {
+        //在这里弄个自动保存吧x
+        final AliasManage aliasManage = MoeLogin.plugin.getAliasManage();
+        if (aliasManage != null) aliasManage.save();
+
         Player player = event.getPlayer();
         if (hasLogin(player)){
             MoeLogin.console.sendMessage(player.getName() + "§b已自动登录");
