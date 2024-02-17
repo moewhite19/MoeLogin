@@ -60,6 +60,7 @@ public class MojangAPI {
     //private static final String[] WHITELISTED_DOMAINS = new String[]{".minecraft.net",".mojang.com"};
     //String baseUrl = env.getSessionHost() + "/session/minecraft/";
     public static final String MOJANG_BASE_URL = "https://sessionserver.mojang.com/session/minecraft/";  //Mojang会话服务器
+    private final FieldAccessor<Proxy> fieldAccessor;
     URL JOIN_URL;
 
     {
@@ -71,7 +72,7 @@ public class MojangAPI {
     }
 
     YggdrasilMinecraftSessionService yggdrasilMinecraftSessionService;
-    MinecraftClient client;
+    public MinecraftClient client;
 
     public MojangAPI() {
         DedicatedServer server = ((CraftServer) Bukkit.getServer()).getServer();
@@ -91,7 +92,9 @@ public class MojangAPI {
             field = ReflectUtil.getFieldFormType(client.getClass(),ObjectMapper.class);
             field.setAccessible(true);
             objectMapper = (ObjectMapper) field.get(client);
-
+            Field declaredField = MinecraftClient.class.getDeclaredField("proxy");
+            declaredField.setAccessible(true);
+            fieldAccessor = ReflectionFactory.createFieldAccessor(declaredField);
         }catch (NoSuchFieldException | IllegalAccessException e){
             throw new RuntimeException(e);
         }
@@ -112,7 +115,7 @@ public class MojangAPI {
         JoinMinecraftServerRequest request = new JoinMinecraftServerRequest(authenticationToken,profileId,serverId);
 
         try{
-            this.post(this.JOIN_URL,request,Void.class);
+            client.post(this.JOIN_URL,request,Void.class);
         }catch (MinecraftClientException var6){
             throw var6.toAuthenticationException();
         }
@@ -135,7 +138,7 @@ public class MojangAPI {
         //生成服务器会话URL
         URL url = HttpAuthenticationService.concatenateURL(constantURL(baseUrl.concat("hasJoined")),HttpAuthenticationService.buildQuery(arguments));
 
-        HasJoinedMinecraftServerResponse response = get(url,HasJoinedMinecraftServerResponse.class);
+        HasJoinedMinecraftServerResponse response = client.get(url,HasJoinedMinecraftServerResponse.class);
         if (response != null && response.id() != null){
             GameProfile result = new GameProfile(response.id(),user.getName());
             if (response.properties() != null){
@@ -149,126 +152,11 @@ public class MojangAPI {
         }
     }
 
-
-    /*
-     * 下面都是摘自MinecraftClient.class
-     * 因为无法重写私有的createUrlConnection方法，所以只能整个都把他的方法都抄过来
-     * ----------------------------------
-     */
-    @Nullable
-    public <T> T get(URL url,Class<T> responseClass) {
-        org.apache.commons.lang3.Validate.notNull(url);
-        org.apache.commons.lang3.Validate.notNull(responseClass);
-        HttpURLConnection connection = this.createUrlConnection(url);
-//        if (this.accessToken != null){
-//            connection.setRequestProperty("Authorization","Bearer " + this.accessToken);
-//        }
-
-        return this.readInputStream(url,responseClass,connection);
-    }
-
-    @Nullable
-    public <T> T post(URL url,Class<T> responseClass) {
-        org.apache.commons.lang3.Validate.notNull(url);
-        org.apache.commons.lang3.Validate.notNull(responseClass);
-        HttpURLConnection connection = this.postInternal(url,new byte[0]);
-        return this.readInputStream(url,responseClass,connection);
-    }
-
-    @Nullable
-    public <T> T post(URL url,Object body,Class<T> responseClass) {
-        org.apache.commons.lang3.Validate.notNull(url);
-        org.apache.commons.lang3.Validate.notNull(body);
-        Validate.notNull(responseClass);
-        String bodyAsJson = objectMapper.writeValueAsString(body);
-        byte[] postAsBytes = bodyAsJson.getBytes(StandardCharsets.UTF_8);
-        HttpURLConnection connection = this.postInternal(url,postAsBytes);
-        return this.readInputStream(url,responseClass,connection);
-    }
-
-    @SuppressWarnings("unchecked")
-    @Nullable
-    private <T> T readInputStream(URL url,Class<T> clazz,HttpURLConnection connection) {
-        InputStream inputStream = null;
-
-        Object var7;
-        try{
-            int status = connection.getResponseCode();
-            String result;
-            if (status >= 400){
-                inputStream = connection.getErrorStream();
-                if (inputStream != null){
-                    result = IOUtils.toString(inputStream,StandardCharsets.UTF_8);
-                    ErrorResponse errorResponse = objectMapper.readValue(result,ErrorResponse.class);
-                    throw new MinecraftClientHttpException(status,errorResponse);
-                }
-
-                throw new MinecraftClientHttpException(status);
-            }
-
-            inputStream = connection.getInputStream();
-            result = IOUtils.toString(inputStream,StandardCharsets.UTF_8);
-            if (result.isEmpty()){
-                var7 = null;
-                return (T) var7;
-            }
-
-            var7 = objectMapper.readValue(result,clazz);
-        }catch (IOException var11){
-            throw new MinecraftClientException(MinecraftClientException.ErrorType.SERVICE_UNAVAILABLE,"Failed to read from " + url + " due to " + var11.getMessage(),var11);
-        } finally {
-            IOUtils.closeQuietly(inputStream);
-        }
-
-        return (T) var7;
-    }
-
-    private HttpURLConnection postInternal(URL url,byte[] postAsBytes) {
-        HttpURLConnection connection = this.createUrlConnection(url);
-        OutputStream outputStream = null;
-
-        try{
-            connection.setRequestProperty("Content-Type","application/json; charset=utf-8");
-            connection.setRequestProperty("Content-Length","" + postAsBytes.length);
-//            if (this.accessToken != null) {
-//                connection.setRequestProperty("Authorization", "Bearer " + this.accessToken);
-//            }
-
-            connection.setRequestMethod("POST");
-            connection.setDoOutput(true);
-            outputStream = connection.getOutputStream();
-            IOUtils.write(postAsBytes,outputStream);
-        }catch (IOException var9){
-            throw new MinecraftClientException(MinecraftClientException.ErrorType.SERVICE_UNAVAILABLE,"Failed to POST " + url,var9);
-        } finally {
-            IOUtils.closeQuietly(outputStream);
-        }
-
-        return connection;
-    }
-
-    private HttpURLConnection createUrlConnection(URL url) {
-        try{
-            if (Setting.DEBUG){
-                MoeLogin.logger.info("访问URL: " + url.toString());
-            }
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setConnectTimeout(15000);
-            connection.setReadTimeout(15000);
-            connection.setUseCaches(false);
-            return connection;
-        }catch (IOException var3){
-            throw new MinecraftClientException(MinecraftClientException.ErrorType.SERVICE_UNAVAILABLE,"Failed connecting to " + url,var3);
-        }
-    }
-
     public void setProxy(Proxy py) {
-        try{
-            final FieldAccessor<Object> proxy = ReflectionFactory.createFieldAccessor(MinecraftClient.class.getDeclaredField("proxy"));
-            proxy.set(client,proxy);
-        }catch (NoSuchFieldException e){
-            e.printStackTrace();
-        }
+        fieldAccessor.set(client,py);
     }
 
+    public Proxy getProxy() {
+        return fieldAccessor.get(client);
+    }
 }

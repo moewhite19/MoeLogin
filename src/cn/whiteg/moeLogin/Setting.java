@@ -2,9 +2,11 @@ package cn.whiteg.moeLogin;
 
 import cn.whiteg.mmocore.DataCon;
 import cn.whiteg.mmocore.MMOCore;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,7 +40,7 @@ public class Setting {
     public static boolean antiDeathHandle = false;
     public static boolean keepSkin = true;
     public static String defaultYggdrasil = null;
-    public static Proxy proxy = null;
+    public static Proxy proxy = Proxy.NO_PROXY;
     //用于验证会话的字符串，当前还没见到使用
     public static String serverId = "";
 
@@ -64,7 +66,7 @@ public class Setting {
                 e.printStackTrace();
             }
 
-            if(loadVer <= 5){
+            if (loadVer <= 5){
                 //todo 重命名储存配置名
                 final Iterator<DataCon> iterator = MMOCore.iteratorPlayerData();
                 final String l_premiu = "Player.premium";
@@ -132,12 +134,12 @@ public class Setting {
                 try{
                     proxy = new Proxy(Proxy.Type.valueOf(cs.getString("Type","SOCKS")),new InetSocketAddress(cs.getString("IP","127.0.0.1"),cs.getInt("Port")));
                     plugin.logger.info("当前已启用代理: " + proxy.address().toString());
-                    break proxy;
                 }catch (Exception e){
                     e.printStackTrace();
                 }
+            } else {
+                proxy = Proxy.NO_PROXY;
             }
-            proxy = Proxy.NO_PROXY;
             MoeLogin.mojangAPI.setProxy(proxy);
         }
     }

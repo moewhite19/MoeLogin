@@ -43,7 +43,7 @@ HttpProxy:
   #[DIRECT,SOCKS,HTTP]
   Type: 'SOCKS'
   IP: '127.0.0.1'
-  Port: '1080'
+  Port: 1080
 
 #允许跨协议版本号
 ViaVersion:
