@@ -29,8 +29,6 @@ public class MoeLogin extends PluginBase {
     public static MoeLogin plugin;
     public static CommandSender console;
     public static MojangAPI mojangAPI = new MojangAPI();
-    public final String authPath = "Player.premium";
-    public final String yggdrasilTypeKey = "Player.yggdrasil";
     public CommandManage mainCommand;
     AliasManage aliasManage;
     private AuthenticateListener authenticateListener;
@@ -117,7 +115,7 @@ public class MoeLogin extends PluginBase {
 
     public boolean setPremium(DataCon dc,boolean var) {
         if (dc != null){
-            dc.set(authPath,var);
+            dc.set(Setting.authPath,var);
             return true;
         }
         return false;
@@ -129,7 +127,7 @@ public class MoeLogin extends PluginBase {
 
     public boolean isPremium(DataCon dc) {
         if (dc != null){
-            return dc.getConfig().getBoolean(authPath,Setting.defaultAuthenticate);
+            return dc.getConfig().getBoolean(Setting.authPath,Setting.defaultAuthenticate);
         } else {
             return Setting.autoRegister;
         }
@@ -141,7 +139,7 @@ public class MoeLogin extends PluginBase {
 
     public String getYggdrasil(DataCon dc) {
         if (dc == null) return null;
-        return dc.getString(yggdrasilTypeKey,Setting.defaultYggdrasil);
+        return dc.getString(Setting.yggdrasilTypeKey,Setting.defaultYggdrasil);
     }
 
     public boolean setYggdrasil(String name,String url) {
@@ -150,7 +148,7 @@ public class MoeLogin extends PluginBase {
 
     public boolean setYggdrasil(DataCon dc,String url) {
         if (dc == null) return false;
-        dc.set(yggdrasilTypeKey,url);
+        dc.set(Setting.yggdrasilTypeKey,url);
         return true;
     }
 

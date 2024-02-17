@@ -12,6 +12,7 @@ import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 
 import java.util.List;
+import java.util.Set;
 
 public class premium extends CommandInterface {
 
@@ -36,7 +37,7 @@ public class premium extends CommandInterface {
                     MoeLogin.plugin.setYggdrasil(dc,null);
                 } else {
                     //开关正版登录
-                    flag = !dc.getConfig().getBoolean(plugin.authPath,Setting.defaultAuthenticate);
+                    flag = !dc.getConfig().getBoolean(Setting.authPath,Setting.defaultAuthenticate);
                     if (flag){
                         if (!sender.getClass().getSimpleName().startsWith("Craft")){ //如果是使用机器人之类的来执行指令就必须完成正版验证
                             if (!dc.getConfig().getBoolean("Authenticate.Success",false)){
@@ -47,7 +48,7 @@ public class premium extends CommandInterface {
                             player.kickPlayer("§b退出使用正版登录");
                         }
                     }
-                    dc.set(plugin.authPath,flag);
+                    dc.set(Setting.authPath,flag);
                 }
                 sender.sendMessage("§b已为阁下设置为: " + (flag ? "§a正版登录" : "§c离线登录"));
                 return true;
@@ -67,8 +68,8 @@ public class premium extends CommandInterface {
                 flag = false;
                 MoeLogin.plugin.setYggdrasil(dc,null);
             } else {
-                flag = dc.getConfig().getBoolean(plugin.authPath,Setting.defaultAuthenticate);
-                dc.set(plugin.authPath,!flag);
+                flag = dc.getConfig().getBoolean(Setting.authPath,Setting.defaultAuthenticate);
+                dc.set(Setting.authPath,!flag);
             }
             sender.sendMessage("§b已将" + dc.getName() + "设置为: " + (flag ? "§c离线登录" : "§a正版登录"));
             return true;
