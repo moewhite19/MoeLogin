@@ -38,15 +38,16 @@ public class PremiumPlayerManage implements Listener {
             while (it.hasNext()) {
                 final DataCon dc = it.next();
                 final String uuidStr = dc.getString(Setting.uuidKey);
+                if (uuidStr == null) continue;
                 UUID uuid = UUID.fromString(uuidStr);
                 final String name = dc.getName();
                 final String latePlayer = getPlayer(uuid);
-                if (uuidStr != null && (latePlayer == null || !latePlayer.equals(name))){
+                if ((latePlayer == null || !latePlayer.equals(name))){
                     addPlayer(name,UUID.fromString(uuidStr));
                     i++;
                 }
             }
-            MoeLogin.logger.warning("§b已加载§f" + i + "§b个正版玩家id");
+            MoeLogin.logger.info("§b已加载§f" + i + "§b个正版玩家id");
             save();
             return;
         }
@@ -134,12 +135,14 @@ public class PremiumPlayerManage implements Listener {
     public void onJoin(PlayerJoinEvent event) {
         DataCon dc = MMOCore.getPlayerData(event.getPlayer());
         final String uuidStr = dc.getString(Setting.uuidKey);
-        UUID uuid = UUID.fromString(uuidStr);
-        final String name = event.getPlayer().getName();
-        final String latePlayer = getPlayer(uuid);
-        if (uuidStr != null && (latePlayer == null || !latePlayer.equals(name))){
-            addPlayer(name,UUID.fromString(uuidStr));
-            MoeLogin.logger.info("已更新玩家UUID绑定");
+        if (uuidStr != null){
+            UUID uuid = UUID.fromString(uuidStr);
+            final String player = dc.getName();
+            final String latePlayer = getPlayer(uuid);
+            if (uuidStr != null && (latePlayer == null || !latePlayer.equals(player))){
+                addPlayer(player,UUID.fromString(uuidStr));
+                MoeLogin.logger.info("已更新玩家UUID绑定");
+            }
         }
         save();
     }
