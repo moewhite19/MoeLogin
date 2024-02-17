@@ -39,6 +39,7 @@ public class Setting {
     public static boolean keepSkin = true;
     public static String defaultYggdrasil = null;
     public static Proxy proxy = null;
+    public static String serverId = "";
 
     public static void reload() {
         MoeLogin plugin = MoeLogin.plugin;

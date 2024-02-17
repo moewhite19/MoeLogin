@@ -6,7 +6,6 @@ import cn.whiteg.mmocore.reflection.ReflectUtil;
 import cn.whiteg.mmocore.util.NMSUtils;
 import cn.whiteg.moeLogin.MoeLogin;
 import cn.whiteg.moeLogin.Setting;
-import cn.whiteg.moeLogin.utils.MojangAPI;
 import cn.whiteg.moepacketapi.MoePacketAPI;
 import cn.whiteg.moepacketapi.PlayerPacketManage;
 import cn.whiteg.moepacketapi.api.event.PacketReceiveEvent;
@@ -231,7 +230,7 @@ public class AuthenticateListener implements Listener {
                     loginSession.loginStart(start);
                     sessionMap.put(event.getNetworkManage(),loginSession);
                     //为玩家发送加密会话
-                    event.getChannel().writeAndFlush(new PacketLoginOutEncryptionBegin("",keypair.getPublic().getEncoded(),token));
+                    event.getChannel().writeAndFlush(new PacketLoginOutEncryptionBegin(Setting.serverId,keypair.getPublic().getEncoded(),token));
                 }catch (RuntimeException e){
                     String msg = e.getMessage();
                     if (!msg.isBlank()){
@@ -261,7 +260,7 @@ public class AuthenticateListener implements Listener {
                     loginSession.loginStart(start);
                     sessionMap.put(event.getNetworkManage(),loginSession);
                     //为玩家发送加密会话
-                    event.getChannel().writeAndFlush(new PacketLoginOutEncryptionBegin("",keypair.getPublic().getEncoded(),token));
+                    event.getChannel().writeAndFlush(new PacketLoginOutEncryptionBegin(Setting.serverId,keypair.getPublic().getEncoded(),token));
                 } else {
                     MoeLogin.plugin.setYggdrasil(name,null);
                     logger.warning("无效外置登录: " + yggdrasil);
@@ -297,14 +296,8 @@ public class AuthenticateListener implements Listener {
                 //paper用
                 network.setupEncryption(secretKey);
 
-                serverId = (new BigInteger(MinecraftEncryption.a("",keypair.getPublic(),secretKey))).toString(16); //这个意味不明
-
-
-                /*
-                //旧的验证token
-                if (!Arrays.equals(token,encryptionBegin.b(privatekey))){
-                    throw new IllegalStateException("Protocol error");
-                }*/
+                //生成用于会话验证的serverId
+                serverId = (new BigInteger(MinecraftEncryption.a(Setting.serverId,keypair.getPublic(),secretKey))).toString(16);
             }catch (CryptographyException e){
                 disconnect(network,"multiplayer.disconnect.invalid_public_key_signature");
                 return;
