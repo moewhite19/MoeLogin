@@ -17,6 +17,7 @@ public class completion extends HasCommandInterface {
     @Override
     public boolean executo(CommandSender sender,Command cmd,String label,String[] args) {
         boolean flag = !Setting.defaultAuthenticate;
+        int i = 0;
         final Iterator<DataCon> it = MMOCore.iteratorPlayerData();
         while (it.hasNext()) {
             final DataCon dc = it.next();
@@ -24,9 +25,12 @@ public class completion extends HasCommandInterface {
                 if (!dc.isSet(Setting.authPath) && !dc.isSet(Setting.yggdrasilTypeKey)){
                     dc.set(Setting.authPath,flag);
                     dc.save();
+                    sender.sendMessage("§b已修改玩家§f" + dc.getName() + "§b的登录方式");
+                    i++;
                 }
             }
         }
+        sender.sendMessage("§b完成,已修改§f" + i + "§b个玩家的登录方式");
         return true;
     }
 
