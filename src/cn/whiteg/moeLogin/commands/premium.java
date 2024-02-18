@@ -2,22 +2,20 @@ package cn.whiteg.moeLogin.commands;
 
 import cn.whiteg.mmocore.DataCon;
 import cn.whiteg.mmocore.MMOCore;
-import cn.whiteg.mmocore.common.CommandInterface;
+import cn.whiteg.mmocore.common.HasCommandInterface;
 import cn.whiteg.moeLogin.MoeLogin;
 import cn.whiteg.moeLogin.Setting;
-import net.minecraft.network.protocol.login.PacketLoginInStart;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 
 import java.util.List;
-import java.util.Set;
 
-public class premium extends CommandInterface {
+public class premium extends HasCommandInterface {
 
     @Override
-    public boolean onCommand(CommandSender sender,Command cmd,String label,String[] args) {
+    public boolean executo(CommandSender sender,Command cmd,String label,String[] args) {
         if (args.length == 0){
             if (sender instanceof ConsoleCommandSender){
                 sender.sendMessage("控制台不能使用这个指令");
@@ -44,7 +42,7 @@ public class premium extends CommandInterface {
                                 sender.sendMessage("没有完成正版验证无法使用这个指令,请在游戏内开启正版登录完成正版验证");
                                 return false;
                             }
-                        }else if (sender instanceof Player player) {
+                        } else if (sender instanceof Player player){
                             player.kickPlayer("§b退出使用正版登录");
                         }
                     }
@@ -78,9 +76,14 @@ public class premium extends CommandInterface {
     }
 
     @Override
-    public List<String> onTabComplete(CommandSender sender,Command cmd,String label,String[] args) {
+    public List<String> complete(CommandSender sender,Command cmd,String label,String[] args) {
         if (args.length == 1) return getMatches(args,MMOCore.getLatelyPlayerList());
         return null;
+    }
+
+    @Override
+    public boolean canUseCommand(CommandSender sender) {
+        return Setting.authenticate;
     }
 
     @Override

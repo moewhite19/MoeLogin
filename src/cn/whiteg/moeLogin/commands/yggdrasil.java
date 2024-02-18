@@ -1,7 +1,7 @@
 package cn.whiteg.moeLogin.commands;
 
 import cn.whiteg.mmocore.MMOCore;
-import cn.whiteg.mmocore.common.CommandInterface;
+import cn.whiteg.mmocore.common.HasCommandInterface;
 import cn.whiteg.moeLogin.MoeLogin;
 import cn.whiteg.moeLogin.Setting;
 import org.bukkit.command.Command;
@@ -13,11 +13,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class yggdrasil extends CommandInterface {
+public class yggdrasil extends HasCommandInterface {
     WeakReference<List<String>> keys = new WeakReference<>(null);
 
     @Override
-    public boolean onCommand(CommandSender sender,Command cmd,String label,String[] args) {
+    public boolean executo(CommandSender sender,Command cmd,String label,String[] args) {
         if (args.length == 0){
             if (sender instanceof ConsoleCommandSender){
                 sender.sendMessage("控制台不能使用这个指令");
@@ -49,7 +49,8 @@ public class yggdrasil extends CommandInterface {
                 if (MoeLogin.plugin.setYggdrasil(args[1],args[0])) sender.sendMessage(" §b已设置玩家外置登录");
                 return true;
             } else {
-                if (MoeLogin.plugin.setYggdrasil(args[1],null)) sender.sendMessage(" §b找不到服务器，已为玩家关闭外置登录");
+                if (MoeLogin.plugin.setYggdrasil(args[1],null))
+                    sender.sendMessage(" §b找不到服务器，已为玩家关闭外置登录");
                 return false;
             }
         }
@@ -57,11 +58,16 @@ public class yggdrasil extends CommandInterface {
     }
 
     @Override
-    public List<String> onTabComplete(CommandSender sender,Command cmd,String label,String[] args) {
+    public List<String> complete(CommandSender sender,Command cmd,String label,String[] args) {
         if (args.length == 1){
             return getKeys();
         } else if (args.length == 2) return getMatches(args,MMOCore.getLatelyPlayerList());
         return null;
+    }
+
+    @Override
+    public boolean canUseCommand(CommandSender sender) {
+        return Setting.authenticate;
     }
 
     List<String> getKeys() {
