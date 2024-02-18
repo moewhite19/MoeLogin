@@ -128,11 +128,7 @@ public class MoeLogin extends PluginBase {
     }
 
     public boolean isPremium(DataCon dc) {
-        if (dc != null){
-            return dc.getConfig().getBoolean(Setting.authPath,Setting.defaultAuthenticate);
-        } else {
-            return Setting.defaultAuthenticate;
-        }
+        return dc == null ? Setting.defaultAuthenticate : dc.getConfig().getBoolean(Setting.authPath,Setting.defaultAuthenticate);
     }
 
     public String getYggdrasil(String name) {
@@ -140,8 +136,7 @@ public class MoeLogin extends PluginBase {
     }
 
     public String getYggdrasil(DataCon dc) {
-        if (dc == null) return null;
-        return dc.getString(Setting.yggdrasilTypeKey,Setting.defaultYggdrasil);
+        return dc == null ? null : dc.getString(Setting.yggdrasilTypeKey,Setting.defaultYggdrasil);
     }
 
     public boolean setYggdrasil(String name,String url) {

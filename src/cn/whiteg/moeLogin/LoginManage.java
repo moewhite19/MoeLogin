@@ -62,7 +62,8 @@ public class LoginManage {
                         }
                         return true;
                     } else {
-                        MoeLogin.plugin.getLogger().warning("玩家" + loginSession.getGameProfile().getName() + "会话验证没有完成，但是还是尝试在服务器登录");
+                        //理论上如果没有完成的话会先被前面的AsyncLogin事件拦下
+                        MoeLogin.plugin.getLogger().warning("玩家" + loginSession.getGameProfile().getName() + "会话验证没有完成，绕过了服务器验证登录系统");
                         noLogin.put(player.getUniqueId(),new PlayerLogin(player));
                         //直接kick会抛出异常
 //                        try{

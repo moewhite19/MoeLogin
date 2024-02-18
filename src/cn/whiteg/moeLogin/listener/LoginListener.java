@@ -6,6 +6,8 @@ import cn.whiteg.moeLogin.MoeLogin;
 import cn.whiteg.moeLogin.PlayerLogin;
 import cn.whiteg.moeLogin.Setting;
 import cn.whiteg.moeLogin.utils.PasswordUtils;
+import net.minecraft.network.NetworkManager;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -23,6 +25,8 @@ import org.bukkit.event.server.TabCompleteEvent;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static cn.whiteg.moeLogin.LoginManage.*;
@@ -72,28 +76,55 @@ public class LoginListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onAsyLogin(AsyncPlayerPreLoginEvent event) {
-        if (event.getLoginResult() != AsyncPlayerPreLoginEvent.Result.ALLOWED) return;
-        if (!PasswordUtils.checkName(event.getName())){
+        if (event.getLoginResult() != AsyncPlayerPreLoginEvent.Result.ALLOWED || Bukkit.getOnlineMode()) return;
+        final String name = event.getName();
+        if (!PasswordUtils.checkName(name)){
             event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER,"§b阁下ID无效§f(仅允许字母数字和下划线,字符数量限制为3-16)");
             return;
         }
-        final DataCon pd = MMOCore.getPlayerData(event.getName());
+
+        final DataCon pd = MMOCore.getPlayerData(name);
+        try{
+            if (Setting.authenticate && (MoeLogin.plugin.isPremium(name) || MoeLogin.plugin.getYggdrasil(name) != null)){
+                final Map<NetworkManager, AuthenticateListener.LoginSession> map = MoeLogin.plugin.getAuthenticateListener().getSessionMap();
+                final Set<Map.Entry<NetworkManager, AuthenticateListener.LoginSession>> entries = map.entrySet();
+                hasSession:
+                {
+                    for (Map.Entry<NetworkManager, AuthenticateListener.LoginSession> entry : entries) {
+                        final AuthenticateListener.LoginSession session = entry.getValue();
+                        if (session.getGameProfile().getName().equals(name)){
+                            break hasSession;
+                        }
+                    }
+                    MoeLogin.logger.warning(name + "没有完成登录验证");
+                    event.setLoginResult(AsyncPlayerPreLoginEvent.Result.KICK_OTHER);
+                    event.setKickMessage("没有完成登录验证");
+                    if (pd != null) MMOCore.unLoad(pd.getUUID());
+                }
+            }
+        }catch (Exception e){
+            event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER,e.getClass().getName());
+            if (pd != null) MMOCore.unLoad(pd.getUUID());
+            e.printStackTrace();
+            return;
+        }
+
         if (pd == null){
             if (Setting.DISALL_NEWPLAYER){
-                DataCon dc = MMOCore.craftData(event.getName());
+                DataCon dc = MMOCore.craftData(name);
                 dc.onSet();
             } else {
                 event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER,Setting.DISALL_MESSAGE);
             }
         } else {
-            String name = pd.getString("Player.name");
-            if (name == null){
-                name = event.getName();
-                pd.setString("Player.name",name);
+            String dname = pd.getString("Player.name");
+            if (dname == null){
+                dname = name;
+                pd.setString("Player.name",dname);
             }
-            if (!name.equals(event.getName())){
+            if (!dname.equals(name)){
                 event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER,Setting.DISALL_MESSAGE);
-                MoeLogin.plugin.getLogger().warning(" 玩家名称" + name + "和数据名称不匹配" + event.getName());
+                MoeLogin.plugin.getLogger().warning(" 玩家名称" + dname + "和数据名称不匹配" + name);
                 return;
             }
             ConfigurationSection sc = pd.getConfig().getConfigurationSection(Setting.banPath);
