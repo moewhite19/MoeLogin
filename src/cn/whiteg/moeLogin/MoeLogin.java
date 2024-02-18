@@ -131,7 +131,7 @@ public class MoeLogin extends PluginBase {
         if (dc != null){
             return dc.getConfig().getBoolean(Setting.authPath,Setting.defaultAuthenticate);
         } else {
-            return Setting.autoRegister;
+            return Setting.defaultAuthenticate;
         }
     }
 

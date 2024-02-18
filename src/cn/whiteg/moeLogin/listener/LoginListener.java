@@ -80,12 +80,10 @@ public class LoginListener implements Listener {
         final DataCon pd = MMOCore.getPlayerData(event.getName());
         if (pd == null){
             if (Setting.DISALL_NEWPLAYER){
-                if (Setting.autoRegister){
-                    DataCon dc = MMOCore.craftData(event.getName());
-                    dc.onSet();
-                } else {
-                    event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER,Setting.DISALL_MESSAGE);
-                }
+                DataCon dc = MMOCore.craftData(event.getName());
+                dc.onSet();
+            } else {
+                event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER,Setting.DISALL_MESSAGE);
             }
         } else {
             String name = pd.getString("Player.name");

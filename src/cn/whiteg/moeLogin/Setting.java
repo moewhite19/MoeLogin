@@ -121,7 +121,11 @@ public class Setting {
             keepSkin = cs.getBoolean("keepSkin");
             defaultAuthenticate = cs.getBoolean("defaultAuthenticate");
             defaultYggdrasil = cs.getString("defaultYggdrasil");
-            autoRegister = cs.getBoolean("autoRegister");
+
+            //遗留的多余配置
+            if (defaultAuthenticate && authenticate && cs.isSet("autoRegister"))
+                DISALL_NEWPLAYER = !cs.getBoolean("autoRegister");
+
             cs = cs.getConfigurationSection("Yggdrasil");
             if (cs != null){
                 for (String key : cs.getKeys(false)) {

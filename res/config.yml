@@ -26,8 +26,6 @@ NewPlayerJoin:
 #正版自动登录
 Authenticate:
   enable: false
-  #正版自动注册
-  autoRegister: false
   #默认正版登录
   defaultAuthenticate: false
   #默认外置登录(去掉注释启用
