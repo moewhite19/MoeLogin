@@ -37,7 +37,6 @@ public class Setting {
     public static String DISALL_MESSAGE;
     public static String noLoginIp = "";
     public static boolean authenticate;
-    public static boolean autoRegister;
     public static boolean defaultAuthenticate;
     public static List<Integer> viaVersion;
     public static Map<String, String> yggdrasilMap = new HashMap<>();
