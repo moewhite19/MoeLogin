@@ -93,7 +93,8 @@ public class LoginListener implements Listener {
                     for (Map.Entry<NetworkManager, AuthenticateListener.LoginSession> entry : entries) {
                         final AuthenticateListener.LoginSession session = entry.getValue();
                         if (session.getGameProfile().getName().equals(name)){
-                            break hasSession;
+                            if (session.isPass()) break hasSession;
+                            else break;
                         }
                     }
                     MoeLogin.logger.warning(name + "没有完成登录验证");
