@@ -122,7 +122,7 @@ public class Setting {
             defaultYggdrasil = cs.getString("defaultYggdrasil");
 
             //遗留的多余配置
-            if (defaultAuthenticate && authenticate && cs.isSet("autoRegister"))
+            if (!DISALL_NEWPLAYER && defaultAuthenticate && authenticate && cs.isSet("autoRegister"))
                 DISALL_NEWPLAYER = !cs.getBoolean("autoRegister");
 
             cs = cs.getConfigurationSection("Yggdrasil");

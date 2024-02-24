@@ -6,10 +6,13 @@ import cn.whiteg.moeLogin.Setting;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.dedicated.DedicatedServer;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Server;
+import org.bukkit.entity.Player;
 
 import java.lang.reflect.Field;
+import java.util.List;
 
 public class Utils {
     public static double HorizontalDistance(Location l1,Location l2) {
@@ -43,6 +46,15 @@ public class Utils {
             }
         }catch (Exception e){
             e.printStackTrace();
+        }
+    }
+
+    public static void sendCommandList(List<String> cmds ,Player player) {
+        if (cmds != null){
+            for (String c : cmds) {
+                if (c == null || c.isEmpty()) continue;
+                Bukkit.dispatchCommand(MoeLogin.console,ChatColor.translateAlternateColorCodes('&',c.replace("%player%",player.getName())));
+            }
         }
     }
 }

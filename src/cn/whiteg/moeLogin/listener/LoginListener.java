@@ -6,6 +6,7 @@ import cn.whiteg.moeLogin.MoeLogin;
 import cn.whiteg.moeLogin.PlayerLogin;
 import cn.whiteg.moeLogin.Setting;
 import cn.whiteg.moeLogin.utils.PasswordUtils;
+import cn.whiteg.moeLogin.utils.Utils;
 import net.minecraft.network.NetworkManager;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
@@ -24,10 +25,7 @@ import org.bukkit.event.player.*;
 import org.bukkit.event.server.TabCompleteEvent;
 
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 import static cn.whiteg.moeLogin.LoginManage.*;
 
@@ -40,6 +38,13 @@ public class LoginListener implements Listener {
         if (aliasManage != null) aliasManage.save();
 
         Player player = event.getPlayer();
+        DataCon dc = MMOCore.getPlayerData(player);
+        if (!dc.contarins("Player.join_time")){
+            List<String> commands = Setting.RegisteredCommands;
+            Utils.sendCommandList(commands,player);
+            dc.set("Player.join_time",System.currentTimeMillis());
+        }
+
         if (hasLogin(player)){
             MoeLogin.console.sendMessage(player.getName() + "§b已自动登录");
         }
@@ -112,10 +117,10 @@ public class LoginListener implements Listener {
 
         if (pd == null){
             if (Setting.DISALL_NEWPLAYER){
+                event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER,Setting.DISALL_MESSAGE);
+            } else {
                 DataCon dc = MMOCore.craftData(name);
                 dc.onSet();
-            } else {
-                event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER,Setting.DISALL_MESSAGE);
             }
         } else {
             String dname = pd.getString("Player.name");

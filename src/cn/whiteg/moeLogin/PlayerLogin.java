@@ -94,7 +94,7 @@ public class PlayerLogin {
         dc.set("Player.latest_login_ip",player.getAddress().getHostString());
         MoeLogin.logger.info(player.getName() + "已登录");
         List<String> commands = Setting.LoginCommands;
-        sendCommand(commands);
+        Utils.sendCommandList(commands,player);
         player.sendMessage("§b欢迎回家~");
         dc.save();
     }
@@ -138,12 +138,6 @@ public class PlayerLogin {
         if (registeredEvent.isCancelled()) return;
         dc.set(passPat,PasswordUtils.toMD5(regStr));
         dc.set(sha1Pat,PasswordUtils.toSha1(regStr));
-        if (!dc.contarins("Player.join_time")){
-            dc.set("Player.join_time",System.currentTimeMillis());
-        }
-        List<String> commands = Setting.RegisteredCommands;
-        sendCommand(commands);
-
         dc.save();
         onLogined();
     }
@@ -185,15 +179,6 @@ public class PlayerLogin {
 
     public Player getPlayer() {
         return player;
-    }
-
-    public void sendCommand(List<String> cmds) {
-        if (cmds != null){
-            for (String c : cmds) {
-                if (c == null || c.isEmpty()) continue;
-                Bukkit.dispatchCommand(MoeLogin.console,ChatColor.translateAlternateColorCodes('&',c.replace("%player%",player.getName())));
-            }
-        }
     }
 
     public boolean isReg() {

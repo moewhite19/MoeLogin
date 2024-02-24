@@ -6,8 +6,10 @@ import cn.whiteg.mmocore.event.DataConDeleteEvent;
 import cn.whiteg.mmocore.event.DataConRenameEvent;
 import cn.whiteg.moeLogin.MoeLogin;
 import cn.whiteg.moeLogin.Setting;
+import cn.whiteg.moeLogin.utils.Utils;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -76,7 +78,7 @@ public class PremiumPlayerManage implements Listener {
     }
 
     public void save() {
-        if (premiumMap.isEmpty() || !change) return; //空的不管
+        if (file.exists() && (premiumMap.isEmpty() || !change)) return; //空的不管
         try{
             if (!file.exists() && !file.createNewFile()){
                 MoeLogin.logger.warning("无法创建文件: " + file);
@@ -134,17 +136,21 @@ public class PremiumPlayerManage implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onJoin(PlayerJoinEvent event) {
         DataCon dc = MMOCore.getPlayerData(event.getPlayer());
-        final String uuidStr = dc.getString(Setting.uuidKey);
-        if (uuidStr != null){
-            UUID uuid = UUID.fromString(uuidStr);
-            final String player = dc.getName();
+
+        //更新正版的UUID绑定
+        final String nowUUID = dc.getString(Setting.uuidKey);
+        if (nowUUID != null){
+            UUID uuid = UUID.fromString(nowUUID);
+            final String name = dc.getName();
             final String latePlayer = getPlayer(uuid);
-            if (uuidStr != null && (latePlayer == null || !latePlayer.equals(player))){
-                addPlayer(player,UUID.fromString(uuidStr));
+            //如果找到的正版UUID绑定的玩家不是这个，就自动重新绑定吧
+            if ((latePlayer == null || !latePlayer.equals(name))){
+                addPlayer(name,UUID.fromString(nowUUID));
                 MoeLogin.logger.info("已更新玩家UUID绑定");
             }
         }
         save();
+
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
