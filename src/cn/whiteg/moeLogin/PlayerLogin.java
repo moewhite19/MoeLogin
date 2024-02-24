@@ -93,8 +93,7 @@ public class PlayerLogin {
         dc.set("Player.login_time",System.currentTimeMillis());
         dc.set("Player.latest_login_ip",player.getAddress().getHostString());
         MoeLogin.logger.info(player.getName() + "已登录");
-        List<String> commands = Setting.LoginCommands;
-        Utils.sendCommandList(commands,player);
+        Utils.sendCommandList(Setting.LoginCommands,player);
         player.sendMessage("§b欢迎回家~");
         dc.save();
     }

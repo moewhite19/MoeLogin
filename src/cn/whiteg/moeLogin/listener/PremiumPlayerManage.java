@@ -6,10 +6,8 @@ import cn.whiteg.mmocore.event.DataConDeleteEvent;
 import cn.whiteg.mmocore.event.DataConRenameEvent;
 import cn.whiteg.moeLogin.MoeLogin;
 import cn.whiteg.moeLogin.Setting;
-import cn.whiteg.moeLogin.utils.Utils;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -26,7 +24,7 @@ public class PremiumPlayerManage implements Listener {
     boolean change = false;
 
 
-    private BiMap<UUID, String> premiumMap = HashBiMap.create(Collections.synchronizedMap(new HashMap<>()));
+    private final BiMap<UUID, String> premiumMap = HashBiMap.create(Collections.synchronizedMap(new HashMap<>()));
 
     public PremiumPlayerManage(File file) {
         this.file = file;

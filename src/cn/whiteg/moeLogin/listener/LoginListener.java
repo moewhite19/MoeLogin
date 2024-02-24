@@ -40,13 +40,17 @@ public class LoginListener implements Listener {
         Player player = event.getPlayer();
         DataCon dc = MMOCore.getPlayerData(player);
         if (!dc.contarins("Player.join_time")){
-            List<String> commands = Setting.RegisteredCommands;
-            Utils.sendCommandList(commands,player);
             dc.set("Player.join_time",System.currentTimeMillis());
+        }
+
+        if(!dc.isSet(Setting.authPath)){
+            dc.set(Setting.authPath,Setting.defaultAuthenticate);
+            Utils.sendCommandList(Setting.RegisteredCommands,player);
         }
 
         if (hasLogin(player)){
             MoeLogin.console.sendMessage(player.getName() + "§b已自动登录");
+            Utils.sendCommandList(Setting.LoginCommands,player);
         }
     }
 
