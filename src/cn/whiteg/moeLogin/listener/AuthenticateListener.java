@@ -18,21 +18,17 @@ import com.mojang.authlib.properties.Property;
 import com.mojang.authlib.properties.PropertyMap;
 import com.mojang.authlib.yggdrasil.ProfileResult;
 import io.netty.channel.ChannelHandlerContext;
-import net.minecraft.network.NetworkManager;
-import net.minecraft.network.chat.IChatBaseComponent;
-import net.minecraft.network.protocol.login.PacketLoginInEncryptionBegin;
-import net.minecraft.network.protocol.login.PacketLoginInStart;
-import net.minecraft.network.protocol.login.PacketLoginOutDisconnect;
-import net.minecraft.network.protocol.login.PacketLoginOutEncryptionBegin;
+import net.minecraft.network.Connection;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.login.ClientboundHelloPacket;
+import net.minecraft.network.protocol.login.ClientboundLoginDisconnectPacket;
+import net.minecraft.network.protocol.login.ServerboundHelloPacket;
+import net.minecraft.network.protocol.login.ServerboundKeyPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.dedicated.DedicatedServer;
-import net.minecraft.server.level.EntityPlayer;
-import net.minecraft.server.network.LoginListener;
 import net.minecraft.server.players.PlayerList;
-import net.minecraft.util.CryptographyException;
-import net.minecraft.util.MinecraftEncryption;
+import net.minecraft.util.CryptException;
 import net.minecraft.util.SignatureValidator;
-import net.minecraft.world.entity.player.EntityHuman;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -69,7 +65,7 @@ public class AuthenticateListener implements Listener {
     private final byte[] token = new byte[4];
     private final Logger logger;
     //private Map<String, LoginSession> sessionMap = Collections.synchronizedMap(new MapMaker().weakKeys().makeMap());  //弱Key引用
-    private final Map<NetworkManager, LoginSession> sessionMap = Collections.synchronizedMap(new HashMap<>()); //会话Map
+    private final Map<Connection, LoginSession> sessionMap = Collections.synchronizedMap(new HashMap<>()); //会话Map
     MinecraftServer server; //服务器对象
     PlayerList playerList;
     private KeyPair keypair;  //密匙
@@ -80,7 +76,7 @@ public class AuthenticateListener implements Listener {
 
     static {
         try{
-            gameProfileField = new FieldAccessor<>(ReflectUtil.getFieldFormType(EntityHuman.class,GameProfile.class));
+            gameProfileField = new FieldAccessor<>(ReflectUtil.getFieldFormType(net.minecraft.world.entity.player.Player.class,GameProfile.class));
         }catch (NoSuchFieldException e){
             throw new RuntimeException(e);
         }
@@ -99,8 +95,8 @@ public class AuthenticateListener implements Listener {
         }
 
         try{
-            loginStart_Name = ReflectUtil.getFieldFormType(PacketLoginInStart.class,String.class);
-            loginStart_getUUID = ReflectUtil.getFieldFormType(PacketLoginInStart.class,UUID.class);
+            loginStart_Name = ReflectUtil.getFieldFormType(ServerboundHelloPacket.class,String.class);
+            loginStart_getUUID = ReflectUtil.getFieldFormType(ServerboundHelloPacket.class,UUID.class);
             loginStart_Name.setAccessible(true);
             loginStart_getUUID.setAccessible(true);
         }catch (NoSuchFieldException e){
@@ -110,7 +106,7 @@ public class AuthenticateListener implements Listener {
         //为什么要用method呢？
         findMethod:
         {
-            for (Method method : PacketLoginInStart.class.getMethods()) {
+            for (Method method : ServerboundHelloPacket.class.getMethods()) {
                 if (method.getReturnType().isAssignableFrom(String.class) && method.getParameterTypes().length == 0 && !method.getName().startsWith("to")){
                     loginStart_Name = new MethodInvoker<>(method);
                     break findMethod;
@@ -120,7 +116,7 @@ public class AuthenticateListener implements Listener {
         }
         findMethod:
         {
-            for (Method method : PacketLoginInStart.class.getMethods()) {
+            for (Method method : ServerboundHelloPacket.class.getMethods()) {
                 if (method.getReturnType().isAssignableFrom(UUID.class) && method.getParameterTypes().length == 0){
                     loginStart_getUUID = new MethodInvoker<>(method);
                     break findMethod;
@@ -130,7 +126,7 @@ public class AuthenticateListener implements Listener {
         }
 */
         try{
-            Field f = ReflectUtil.getFieldFormType(net.minecraft.server.network.LoginListener.class,GameProfile.class);
+            Field f = ReflectUtil.getFieldFormType(net.minecraft.server.network.ServerLoginPacketListenerImpl.class,GameProfile.class);
             loginGameProfile = new FieldAccessor<>(f);
         }catch (Exception e){
             throw new RuntimeException(e);
@@ -138,7 +134,10 @@ public class AuthenticateListener implements Listener {
 
     }
 
-    private static final IChatBaseComponent MISSING_PUBLIC_KEY = IChatBaseComponent.c("multiplayer.disconnect.missing_public_key");
+    /**
+     * @noinspection NoTranslation
+     */
+    private static final Component MISSING_PUBLIC_KEY = Component.translatable("multiplayer.disconnect.missing_public_key");
 
 
     public AuthenticateListener() {
@@ -170,7 +169,7 @@ public class AuthenticateListener implements Listener {
     public void login(final PacketReceiveEvent event) {
         if (Bukkit.getOnlineMode()) return; //如果当前服务器为在线模式跳出
         var packet = event.getPacket();
-        if (packet instanceof PacketLoginInStart start){
+        if (packet instanceof ServerboundHelloPacket start){
             PlayerPacketManage manage = MoePacketAPI.getInstance().getPlayerPacketManage();
             //跳过插件发包
             if (manage.isPluginPacket(packet)) return;
@@ -183,9 +182,9 @@ public class AuthenticateListener implements Listener {
 
             //遍历清理Map
             if (!sessionMap.isEmpty()) synchronized (sessionMap) {
-                Iterator<Map.Entry<NetworkManager, LoginSession>> it = sessionMap.entrySet().iterator();
+                Iterator<Map.Entry<Connection, LoginSession>> it = sessionMap.entrySet().iterator();
                 while (it.hasNext()) {
-                    Map.Entry<NetworkManager, LoginSession> v = it.next();
+                    Map.Entry<Connection, LoginSession> v = it.next();
                     if (v.getValue().isOnline()) continue;
                     //清理已关闭的会话
                     it.remove();
@@ -210,7 +209,7 @@ public class AuthenticateListener implements Listener {
                 var alias = aliasManage.getPlayer(name);
                 if (alias != null){
 
-                    event.setPacket(new PacketLoginInStart(alias,MMOCore.getUUID(alias))); //将别名替换为当前名字
+                    event.setPacket(new ServerboundHelloPacket(alias,MMOCore.getUUID(alias))); //将别名替换为当前名字
                     logger.info("玩家别名登录" + name + "已替换为" + alias + "并且使用离线登录");
 //                    name = alias;
                     return; //都用上别名了，应该不会需要正版验证
@@ -218,7 +217,7 @@ public class AuthenticateListener implements Listener {
             }
 
             //检查重复登录
-            if (playerList.a(name) != null){
+            if (playerList.getPlayerByName(name) != null){
                 disconnect(event.getNetworkManage(),"multiplayer.disconnect.duplicate_login");
                 return;
             }
@@ -232,7 +231,7 @@ public class AuthenticateListener implements Listener {
                     loginSession.loginStart(start);
                     sessionMap.put(event.getNetworkManage(),loginSession);
                     //为玩家发送加密会话
-                    event.getChannel().writeAndFlush(new PacketLoginOutEncryptionBegin(Setting.serverId,keypair.getPublic().getEncoded(),token));
+                    event.getChannel().writeAndFlush(new ClientboundHelloPacket(Setting.serverId,keypair.getPublic().getEncoded(),token,true));
                 }catch (RuntimeException e){
                     String msg = e.getMessage();
                     if (!msg.isBlank()){
@@ -262,7 +261,7 @@ public class AuthenticateListener implements Listener {
                     loginSession.loginStart(start);
                     sessionMap.put(event.getNetworkManage(),loginSession);
                     //为玩家发送加密会话
-                    event.getChannel().writeAndFlush(new PacketLoginOutEncryptionBegin(Setting.serverId,keypair.getPublic().getEncoded(),token));
+                    event.getChannel().writeAndFlush(new ClientboundHelloPacket(Setting.serverId,keypair.getPublic().getEncoded(),token,true));
                 } else {
                     MoeLogin.plugin.setYggdrasil(name,null);
                     logger.warning("无效外置登录: " + yggdrasil);
@@ -272,10 +271,10 @@ public class AuthenticateListener implements Listener {
 
             logger.info("玩家离线登录: " + gameProfile.getName());
 
-        } else if (packet instanceof PacketLoginInEncryptionBegin encryptionBegin){
+        } else if (packet instanceof ServerboundKeyPacket encryptionBegin){
             //收到加密会话
             PlayerPacketManage manage = MoePacketAPI.getInstance().getPlayerPacketManage();
-            NetworkManager network = event.getNetworkManage();
+            Connection network = event.getNetworkManage();
             LoginSession loginSession = sessionMap.get(network);
             if (loginSession == null){
                 return;
@@ -290,7 +289,7 @@ public class AuthenticateListener implements Listener {
 
             try{
                 //设置编码器和解码器Key
-                secretKey = encryptionBegin.a(privatekey);
+                secretKey = encryptionBegin.getSecretKey(privatekey);
                 //spigot用
 //                Cipher cipher = MinecraftEncryption.a(2,secretKey);
 //                Cipher cipher1 = MinecraftEncryption.a(1,secretKey);
@@ -299,8 +298,8 @@ public class AuthenticateListener implements Listener {
                 network.setupEncryption(secretKey);
 
                 //生成用于会话验证的serverId
-                serverId = (new BigInteger(MinecraftEncryption.a(Setting.serverId,keypair.getPublic(),secretKey))).toString(16);
-            }catch (CryptographyException e){
+                serverId = (new BigInteger(net.minecraft.util.Crypt.digestData(Setting.serverId,keypair.getPublic(),secretKey))).toString(16);
+            }catch (CryptException e){
                 disconnect(network,"multiplayer.disconnect.invalid_public_key_signature");
                 return;
 //                throw new IllegalStateException("Protocol error");
@@ -320,7 +319,7 @@ public class AuthenticateListener implements Listener {
                             GameProfile onlineProfile = profileResult.profile();
                             loginSession.setOnlineGameProfile(onlineProfile);
                             //验证token
-                            if (!encryptionBegin.a(token,privatekey)){
+                            if (!encryptionBegin.isChallengeValid(token,privatekey)){
                                 throw new IllegalStateException("Protocol error");
                             }
                             if (!event.getChannel().isOpen()){
@@ -337,7 +336,7 @@ public class AuthenticateListener implements Listener {
                             //检查正版玩家是否重命名
                             if (loginSession.getYggdrasil() == null){
                                 final String lateName = MoeLogin.plugin.getPremiumPlayerManage().getPlayer(onlineProfile.getId());
-                                if(lateName != null){
+                                if (lateName != null){
                                     final String nowName = gameProfile.getName();
                                     if (!lateName.equals(nowName)){
                                         MoeLogin.logger.warning("§b正版玩家" + nowName + "曾用名" + lateName);
@@ -351,7 +350,7 @@ public class AuthenticateListener implements Listener {
                             }
 
 
-                            PacketLoginInStart packet = new PacketLoginInStart(gameProfile.getName(),MMOCore.getUUID(gameProfile.getName()));
+                            ServerboundHelloPacket packet = new ServerboundHelloPacket(gameProfile.getName(),MMOCore.getUUID(gameProfile.getName()));
                             manage.recieveClientPacket(network,packet); //恢复登录状态
                             loginSession.pass();
                             if (Setting.DEBUG){
@@ -388,18 +387,18 @@ public class AuthenticateListener implements Listener {
     public void appendProfile(PlayerLoginEvent event) throws IllegalAccessException {
         if (sessionMap.isEmpty()) return;
         Player player = event.getPlayer();
-        //NetworkManager network = MoePacketAPI.getInstance().getPlayerPacketManage().getNetworkManage(player);  //这时获取到的NetworkManager为Null
-        for (Map.Entry<NetworkManager, LoginSession> entry : sessionMap.entrySet()) {
+        //Connection network = MoePacketAPI.getInstance().getPlayerPacketManage().getNetworkManage(player);  //这时获取到的Connection为Null
+        for (Map.Entry<Connection, LoginSession> entry : sessionMap.entrySet()) {
             LoginSession session = entry.getValue();
             if (session.getGameProfile().getName().equals(player.getName())){
-                NetworkManager network;
+                Connection network;
                 network = entry.getKey();
                 LoginSession loginSession = sessionMap.get(network);
                 if (loginSession != null){
                     GameProfile gameProfile = loginSession.getOnlineGameProfile();
                     if (gameProfile != null){
                         //为玩家应用皮肤
-                        EntityPlayer np = (EntityPlayer) NMSUtils.getNmsEntity(player);
+                        net.minecraft.world.entity.player.Player np = (net.minecraft.world.entity.player.Player) NMSUtils.getNmsEntity(player);
                         loginSession.initPropertiesTo(loginSession.getOnlineGameProfile(),gameProfileField.get(np));
                     } else {
                         disconnect(network,"会话验证成功， 但登录过程中出现错误{0}");
@@ -411,19 +410,19 @@ public class AuthenticateListener implements Listener {
     }
 
     //断开连接
-    public void disconnect(NetworkManager networkManager,String msg) {
+    public void disconnect(Connection networkManager,String msg) {
         sessionMap.remove(networkManager);
         if (!MoePacketAPI.getInstance().getPlayerPacketManage().getChannel(networkManager).isOpen()) return;
         try{
-            IChatBaseComponent ichat = IChatBaseComponent.c(msg);
-            networkManager.a(new PacketLoginOutDisconnect(ichat));
-            networkManager.a(ichat);
+            Component ichat = Component.translatable(msg);
+            networkManager.send(new ClientboundLoginDisconnectPacket(ichat));
+            networkManager.disconnect(ichat);
         }catch (Exception var3){
             logger.warning("Error whilst disconnecting player");
         }
     }
 
-    public Map<NetworkManager, LoginSession> getSessionMap() {
+    public Map<Connection, LoginSession> getSessionMap() {
         return sessionMap;
     }
 
@@ -537,7 +536,7 @@ public class AuthenticateListener implements Listener {
             return yggdrasilUrl;
         }
 
-        public void loginStart(PacketLoginInStart login) {
+        public void loginStart(ServerboundHelloPacket login) {
         }
     }
 

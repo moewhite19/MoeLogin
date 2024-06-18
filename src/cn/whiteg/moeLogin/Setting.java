@@ -2,6 +2,7 @@ package cn.whiteg.moeLogin;
 
 import cn.whiteg.mmocore.DataCon;
 import cn.whiteg.mmocore.MMOCore;
+import cn.whiteg.moeLogin.utils.MojangAPI;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import org.bukkit.Bukkit;
@@ -140,9 +141,10 @@ public class Setting {
             if (cs != null && cs.getBoolean("Enable")){
                 try{
                     proxy = new Proxy(Proxy.Type.valueOf(cs.getString("Type","SOCKS")),new InetSocketAddress(cs.getString("IP","127.0.0.1"),cs.getInt("Port")));
-                    plugin.logger.info("当前已启用代理: " + proxy.address().toString());
+                    plugin.logger.info("使用代理: " + proxy);
                 }catch (Exception e){
                     e.printStackTrace();
+                    break proxy;
                 }
             } else {
                 proxy = Proxy.NO_PROXY;

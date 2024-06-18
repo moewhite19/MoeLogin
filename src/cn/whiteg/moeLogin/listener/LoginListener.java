@@ -7,7 +7,7 @@ import cn.whiteg.moeLogin.PlayerLogin;
 import cn.whiteg.moeLogin.Setting;
 import cn.whiteg.moeLogin.utils.PasswordUtils;
 import cn.whiteg.moeLogin.utils.Utils;
-import net.minecraft.network.NetworkManager;
+import net.minecraft.network.Connection;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
@@ -39,9 +39,6 @@ public class LoginListener implements Listener {
 
         Player player = event.getPlayer();
         DataCon dc = MMOCore.getPlayerData(player);
-        if (!dc.contarins("Player.join_time")){
-            dc.set("Player.join_time",System.currentTimeMillis());
-        }
 
         if(!dc.isSet(Setting.authPath)){
             dc.set(Setting.authPath,Setting.defaultAuthenticate);
@@ -95,11 +92,11 @@ public class LoginListener implements Listener {
         final DataCon pd = MMOCore.getPlayerData(name);
         try{
             if (Setting.authenticate && (MoeLogin.plugin.isPremium(name) || MoeLogin.plugin.getYggdrasil(name) != null)){
-                final Map<NetworkManager, AuthenticateListener.LoginSession> map = MoeLogin.plugin.getAuthenticateListener().getSessionMap();
-                final Set<Map.Entry<NetworkManager, AuthenticateListener.LoginSession>> entries = map.entrySet();
+                final Map<Connection, AuthenticateListener.LoginSession> map = MoeLogin.plugin.getAuthenticateListener().getSessionMap();
+                final Set<Map.Entry<Connection, AuthenticateListener.LoginSession>> entries = map.entrySet();
                 hasSession:
                 {
-                    for (Map.Entry<NetworkManager, AuthenticateListener.LoginSession> entry : entries) {
+                    for (Map.Entry<Connection, AuthenticateListener.LoginSession> entry : entries) {
                         final AuthenticateListener.LoginSession session = entry.getValue();
                         if (session.getGameProfile().getName().equals(name)){
                             if (session.isPass()) break hasSession;

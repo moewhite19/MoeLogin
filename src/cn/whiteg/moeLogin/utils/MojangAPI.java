@@ -3,14 +3,11 @@ package cn.whiteg.moeLogin.utils;
 import cn.whiteg.mmocore.reflection.FieldAccessor;
 import cn.whiteg.mmocore.reflection.ReflectUtil;
 import cn.whiteg.mmocore.reflection.ReflectionFactory;
-import cn.whiteg.moeLogin.MoeLogin;
-import cn.whiteg.moeLogin.Setting;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.HttpAuthenticationService;
 import com.mojang.authlib.exceptions.AuthenticationException;
 import com.mojang.authlib.exceptions.AuthenticationUnavailableException;
 import com.mojang.authlib.exceptions.MinecraftClientException;
-import com.mojang.authlib.exceptions.MinecraftClientHttpException;
 import com.mojang.authlib.minecraft.MinecraftSessionService;
 import com.mojang.authlib.minecraft.client.MinecraftClient;
 import com.mojang.authlib.minecraft.client.ObjectMapper;
@@ -18,25 +15,17 @@ import com.mojang.authlib.yggdrasil.ProfileActionType;
 import com.mojang.authlib.yggdrasil.ProfileResult;
 import com.mojang.authlib.yggdrasil.YggdrasilMinecraftSessionService;
 import com.mojang.authlib.yggdrasil.request.JoinMinecraftServerRequest;
-import com.mojang.authlib.yggdrasil.response.ErrorResponse;
 import com.mojang.authlib.yggdrasil.response.HasJoinedMinecraftServerResponse;
 import com.mojang.authlib.yggdrasil.response.ProfileAction;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.dedicated.DedicatedServer;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.Validate;
 import org.bukkit.Bukkit;
-import org.bukkit.craftbukkit.v1_20_R3.CraftServer;
+import org.bukkit.craftbukkit.CraftServer;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.*;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -60,7 +49,7 @@ public class MojangAPI {
     //private static final String[] WHITELISTED_DOMAINS = new String[]{".minecraft.net",".mojang.com"};
     //String baseUrl = env.getSessionHost() + "/session/minecraft/";
     public static final String MOJANG_BASE_URL = "https://sessionserver.mojang.com/session/minecraft/";  //Mojang会话服务器
-    private final FieldAccessor<Proxy> fieldAccessor;
+    private final FieldAccessor<Proxy> proxyField;
     URL JOIN_URL;
 
     {
@@ -94,7 +83,7 @@ public class MojangAPI {
             objectMapper = (ObjectMapper) field.get(client);
             Field declaredField = MinecraftClient.class.getDeclaredField("proxy");
             declaredField.setAccessible(true);
-            fieldAccessor = ReflectionFactory.createFieldAccessor(declaredField);
+            proxyField = ReflectionFactory.createFieldAccessor(declaredField);
         }catch (NoSuchFieldException | IllegalAccessException e){
             throw new RuntimeException(e);
         }
@@ -153,10 +142,10 @@ public class MojangAPI {
     }
 
     public void setProxy(Proxy py) {
-        fieldAccessor.set(client,py);
+        proxyField.set(client,py);
     }
 
     public Proxy getProxy() {
-        return fieldAccessor.get(client);
+        return proxyField.get(client);
     }
 }

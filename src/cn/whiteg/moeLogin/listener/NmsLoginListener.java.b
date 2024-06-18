@@ -61,7 +61,7 @@ public class NmsLoginListener extends LoginListener {
     private EntityPlayer entityPlayer;
     private int velocityLoginMessageId = -1;
 
-    public NmsLoginListener(MinecraftServer minecraftserver,NetworkManager networkmanager) {
+    public NmsLoginListener(MinecraftServer minecraftserver,Connection networkmanager) {
         super(minecraftserver,networkmanager);
         this.state = NmsLoginListener.EnumProtocolState.HELLO;
         this.server = minecraftserver;
@@ -102,8 +102,8 @@ public class NmsLoginListener extends LoginListener {
     }
 
 
-    //获取NetworkManager
-    public NetworkManager a() {
+    //获取Connection
+    public Connection a() {
         return this.networkManager;
     }
 
@@ -303,12 +303,12 @@ public class NmsLoginListener extends LoginListener {
     }
 
     @Override
-    public void a(PacketLoginInStart packetlogininstart) {
+    public void a(ServerboundHelloPacket packetlogininstart) {
         Validate.validState(this.state == NmsLoginListener.EnumProtocolState.HELLO,"Unexpected hello packet",new Object[0]);
         this.gameProfile = packetlogininstart.b();
         if (this.server.getOnlineMode() && !this.networkManager.isLocal()){
             this.state = NmsLoginListener.EnumProtocolState.KEY;
-            this.networkManager.sendPacket(new PacketLoginOutEncryptionBegin("",this.server.getKeyPair().getPublic(),this.e));
+            this.networkManager.sendPacket(new ClientboundHelloPacket("",this.server.getKeyPair().getPublic(),this.e));
         } else {
             if (PaperConfig.velocitySupport){
                 this.velocityLoginMessageId = ThreadLocalRandom.current().nextInt();
