@@ -8,15 +8,11 @@ import cn.whiteg.moeLogin.utils.PasswordUtils;
 import cn.whiteg.moeLogin.utils.Utils;
 import cn.whiteg.moeLogin.utils.Verification;
 import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
-
-import java.util.List;
 
 import static cn.whiteg.moeLogin.Setting.*;
 
@@ -68,20 +64,16 @@ public class PlayerLogin {
         LoginManage.noLogin.remove(player.getUniqueId());
     }
 
-    public boolean hasLogin(String passwd) {
-        if (isReg){
-            if (passwd.length() < 6){
-                player.sendMessage(loginfallmsg);
-                return false;
-            } else {
-                if (LoginManage.hasPassword(dc,passwd)){
-                    onLogined();
-                } else {
-                    player.sendMessage("§b密码错误");
-                }
-            }
+    public boolean hasPasswd(String passwd) {
+        if (passwd.length() < 6){
+            player.sendMessage(loginfallmsg);
+            return false;
         } else {
-            player.sendMessage("阁下还没有注册哦");
+            if (LoginManage.hasPassword(dc,passwd)){
+                onLogined();
+            } else {
+                player.sendMessage("§b密码错误");
+            }
         }
         return false;
     }
@@ -141,13 +133,13 @@ public class PlayerLogin {
         onLogined();
     }
 
-    public void onChat(String msg) {
+    public void sendMsg() {
         player.sendMessage(isReg ? loginmsg : regmsg);
     }
 
     public void SendCommand(String msg) {
         if (isReg){
-            if (hasLogin(msg)){
+            if (hasPasswd(msg)){
                 player.sendMessage("§b已登录");
                 PlayerLoginEvent loginEvent = new PlayerLoginEvent(player);
                 Bukkit.getPluginManager().callEvent(loginEvent);

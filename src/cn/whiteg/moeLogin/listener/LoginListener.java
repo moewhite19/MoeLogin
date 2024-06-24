@@ -17,7 +17,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockCanBuildEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -41,7 +40,7 @@ public class LoginListener implements Listener {
         Player player = event.getPlayer();
         DataCon dc = MMOCore.getPlayerData(player);
 
-        if (!dc.isSet(Setting.authPath)){
+        if (!dc.isSet(Setting.authPath)){ //如果先前没有设置过认证方式，则设置默认认证方式
             dc.set(Setting.authPath,Setting.defaultAuthenticate);
             Utils.sendCommandList(Setting.RegisteredCommands,player);
         }
@@ -91,31 +90,6 @@ public class LoginListener implements Listener {
         }
 
         final DataCon pd = MMOCore.getPlayerData(name);
-        try{
-            if (Setting.authenticate && (MoeLogin.plugin.isPremium(name) || MoeLogin.plugin.getYggdrasil(name) != null)){
-                final Map<Connection, AuthenticateListener.LoginSession> map = MoeLogin.plugin.getAuthenticateListener().getSessionMap();
-                final Set<Map.Entry<Connection, AuthenticateListener.LoginSession>> entries = map.entrySet();
-                hasSession:
-                {
-                    for (Map.Entry<Connection, AuthenticateListener.LoginSession> entry : entries) {
-                        final AuthenticateListener.LoginSession session = entry.getValue();
-                        if (session.getGameProfile().getName().equals(name)){
-                            if (session.isPass()) break hasSession;
-                            else break;
-                        }
-                    }
-                    MoeLogin.logger.warning(name + "没有完成登录验证");
-                    event.setLoginResult(AsyncPlayerPreLoginEvent.Result.KICK_OTHER);
-                    event.setKickMessage("没有完成登录验证");
-                    if (pd != null) MMOCore.unLoad(pd.getUUID());
-                }
-            }
-        }catch (Exception e){
-            event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER,e.getClass().getName());
-            if (pd != null) MMOCore.unLoad(pd.getUUID());
-            e.printStackTrace();
-            return;
-        }
 
         if (pd == null){
             if (Setting.DISALL_NEWPLAYER){
@@ -148,22 +122,56 @@ public class LoginListener implements Listener {
                     pd.set(Setting.banPath,null);
             }
         }
+
+        try{
+            if (Setting.authenticate && (MoeLogin.plugin.isPremium(name) || MoeLogin.plugin.getYggdrasil(name) != null)){
+                final Map<Connection, AuthenticateListener.LoginSession> map = MoeLogin.plugin.getAuthenticateListener().getSessionMap();
+                final Set<Map.Entry<Connection, AuthenticateListener.LoginSession>> entries = map.entrySet();
+                hasSession:
+                {
+                    for (Map.Entry<Connection, AuthenticateListener.LoginSession> entry : entries) {
+                        final AuthenticateListener.LoginSession session = entry.getValue();
+                        if (session.getGameProfile().getName().equals(name)){
+                            if (session.isPass()) break hasSession;
+                            else break;
+                        }
+                    }
+                    MoeLogin.logger.warning(name + "没有完成登录验证");
+                    event.setLoginResult(AsyncPlayerPreLoginEvent.Result.KICK_OTHER);
+                    event.setKickMessage("没有完成登录验证");
+                    if (pd != null) MMOCore.unLoad(pd.getUUID());
+                }
+            }
+        }catch (Throwable e){
+            event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER,e.getClass().getName());
+            if (pd != null) MMOCore.unLoad(pd.getUUID());
+            e.printStackTrace();
+        }
+
     }
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        if (isNoLogin(event.getPlayer())){
-            UUID uuid = event.getPlayer().getUniqueId();
+        final Player player = event.getPlayer();
+        if (isNoLogin(player)){
+            UUID uuid = player.getUniqueId();
             PlayerLogin pl = noLogin.get(uuid);
             if (pl != null){
                 pl.remove();
             }
             noLogin.remove(uuid);
         }
+
+        //如果玩家不是正版登录，建不能在上次下线位置上线
+        final DataCon dc = MMOCore.getPlayerData(player);
+        if (!MoeLogin.plugin.isPremium(dc) && MoeLogin.plugin.getYggdrasil(dc) == null){
+            player.teleport(MoeLogin.plugin.getServer().getWorlds().get(0).getSpawnLocation());
+        }
     }
 
+    @SuppressWarnings("deprecation")
     @EventHandler(priority = EventPriority.LOW)
-    public void Chat(AsyncPlayerChatEvent event) {
+    public void onChat(AsyncPlayerChatEvent event) {
         if (Setting.antiDeathHandle && event.getPlayer().isDead()){
             event.setCancelled(true);
             MoeLogin.logger.warning("玩家" + event.getPlayer().getName() + "尝试在死亡时发送聊天" + event.getMessage());
@@ -172,8 +180,7 @@ public class LoginListener implements Listener {
         if (!noLogin.isEmpty()){
             PlayerLogin lg = noLogin.get(event.getPlayer().getUniqueId());
             if (lg == null) return;
-            String msg = event.getMessage();
-            lg.onChat(msg);
+            lg.sendMsg();
             event.setCancelled(true);
         }
     }

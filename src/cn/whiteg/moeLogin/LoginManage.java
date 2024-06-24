@@ -62,7 +62,8 @@ public class LoginManage {
                         }
                         return true;
                     } else {
-                        //理论上如果没有完成的话会先被前面的AsyncLogin事件拦下
+                        //理论上如果没有完成的话会先被前面的AsyncPlayerPreLoginEvent事件拦下
+                        //基本只有在MoePacketAPI挂了后才会触发这个
                         MoeLogin.plugin.getLogger().warning("玩家" + loginSession.getGameProfile().getName() + "会话验证没有完成，绕过了服务器验证登录系统");
                         noLogin.put(player.getUniqueId(),new PlayerLogin(player));
                         //直接kick会抛出异常
@@ -86,6 +87,8 @@ public class LoginManage {
             e.printStackTrace();
         }
 
+        //使用离线登录
+//        player.sendMessage(" §b请输入§f/§b+§f<密码>§b来离线登录");
         noLogin.put(player.getUniqueId(),new PlayerLogin(player));
         return false;
     }
@@ -141,10 +144,7 @@ public class LoginManage {
     }
 
     public static boolean logOut(Player player) {
-        if (player == null || noLogin.containsKey(player.getUniqueId())) return false;
-        DataCon dc = MMOCore.getPlayerData(player);
-        dc.setString("Player.latest_login_ip","0.0.0.0");
-        noLogin.put(player.getUniqueId(),new PlayerLogin(player));
+        player.kickPlayer(" §b登出服务器");
         return true;
     }
 
