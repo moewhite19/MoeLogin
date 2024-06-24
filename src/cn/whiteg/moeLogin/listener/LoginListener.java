@@ -18,6 +18,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockCanBuildEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
@@ -40,7 +41,7 @@ public class LoginListener implements Listener {
         Player player = event.getPlayer();
         DataCon dc = MMOCore.getPlayerData(player);
 
-        if(!dc.isSet(Setting.authPath)){
+        if (!dc.isSet(Setting.authPath)){
             dc.set(Setting.authPath,Setting.defaultAuthenticate);
             Utils.sendCommandList(Setting.RegisteredCommands,player);
         }
@@ -222,14 +223,12 @@ public class LoginListener implements Listener {
     public void entityDamage(EntityDamageByEntityEvent event) {
         if (isNoLogin(event.getDamager())){
             event.setCancelled(true);
-        } else if (isNoLogin(event.getEntity())){
-            event.setCancelled(true);
         }
     }
 
     @EventHandler
-    public void blockDamage(EntityDamageEvent event) {
-        if (isNoLogin(event.getEntity())){
+    public void target(EntityTargetLivingEntityEvent event) {
+        if (isNoLogin(event.getTarget())){
             event.setCancelled(true);
         }
     }
