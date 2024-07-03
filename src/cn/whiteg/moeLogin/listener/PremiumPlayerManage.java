@@ -114,9 +114,9 @@ public class PremiumPlayerManage implements Listener {
     }
 
     public void addPlayer(String player,UUID uuid) {
-        if (premiumMap.inverse().containsKey(player)) removePlayer(player);
-        change = true;
-        premiumMap.put(uuid,player);
+        if (premiumMap.inverse().containsKey(player)) removePlayer(player); //如果有绑定其他UUID就先删除
+
+        if (premiumMap.put(uuid,player) == null) change = true;
     }
 
     public String removePlayer(UUID player) {
