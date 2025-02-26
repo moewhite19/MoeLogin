@@ -63,6 +63,7 @@ public class MojangAPI {
     YggdrasilMinecraftSessionService yggdrasilMinecraftSessionService;
     public MinecraftClient client;
 
+    @SuppressWarnings("unchecked")
     public MojangAPI() {
         DedicatedServer server = ((CraftServer) Bukkit.getServer()).getServer();
         MinecraftSessionService sessionService;
@@ -83,7 +84,7 @@ public class MojangAPI {
             objectMapper = (ObjectMapper) field.get(client);
             Field declaredField = MinecraftClient.class.getDeclaredField("proxy");
             declaredField.setAccessible(true);
-            proxyField = ReflectionFactory.createFieldAccessor(declaredField);
+            proxyField = (FieldAccessor<Proxy>) ReflectionFactory.createFieldAccessor(declaredField);
         }catch (NoSuchFieldException | IllegalAccessException e){
             throw new RuntimeException(e);
         }

@@ -295,7 +295,7 @@ public class AuthenticateListener implements Listener {
 //                Cipher cipher1 = MinecraftEncryption.a(1,secretKey);
 //                network.a(cipher,cipher1);
                 //paper用
-                network.setupEncryption(secretKey);
+                network.setEncryptionKey(secretKey);
 
                 //生成用于会话验证的serverId
                 serverId = (new BigInteger(net.minecraft.util.Crypt.digestData(Setting.serverId,keypair.getPublic(),secretKey))).toString(16);

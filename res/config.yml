@@ -1,6 +1,6 @@
 ver: 6
 debug: false
-#保存玩家ID，如果下次进入服务器时ID一致自动登录
+#保存玩家IP，如果下次进入服务器时IP一致自动登录
 AutoLogin: false
 #注册确认行为
 RegisterVerification: false

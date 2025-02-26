@@ -2,14 +2,9 @@ package cn.whiteg.moeLogin;
 
 import cn.whiteg.mmocore.DataCon;
 import cn.whiteg.mmocore.MMOCore;
-import cn.whiteg.moeLogin.utils.MojangAPI;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.io.IOException;

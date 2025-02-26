@@ -64,10 +64,9 @@ public class PlayerLogin {
         LoginManage.noLogin.remove(player.getUniqueId());
     }
 
-    public boolean hasPasswd(String passwd) {
+    public void hasPasswd(String passwd) {
         if (passwd.length() < 6){
             player.sendMessage(loginfallmsg);
-            return false;
         } else {
             if (LoginManage.hasPassword(dc,passwd)){
                 onLogined();
@@ -75,18 +74,17 @@ public class PlayerLogin {
                 player.sendMessage("§b密码错误");
             }
         }
-        return false;
     }
 
     public void onLogined() {
         remove();
-        PlayerLoginEvent loginEvent = new PlayerLoginEvent(player);
+        PlayerLoginEvent loginEvent = new PlayerLoginEvent(player,PlayerLoginEvent.LoginType.OFFLINE);
         Bukkit.getPluginManager().callEvent(loginEvent);
         dc.set("Player.login_time",System.currentTimeMillis());
-        dc.set("Player.latest_login_ip",player.getAddress().getHostString());
+        if (AUTO_LOGIN) dc.set("Player.latest_login_ip",player.getAddress().getHostString());
         MoeLogin.logger.info(player.getName() + "已登录");
         Utils.sendCommandList(Setting.LoginCommands,player);
-        player.sendMessage("§b欢迎回家~");
+        player.sendMessage(" §b欢迎回家~");
         dc.save();
     }
 
@@ -138,13 +136,8 @@ public class PlayerLogin {
     }
 
     public void SendCommand(String msg) {
-        if (isReg){
-            if (hasPasswd(msg)){
-                player.sendMessage("§b已登录");
-                PlayerLoginEvent loginEvent = new PlayerLoginEvent(player);
-                Bukkit.getPluginManager().callEvent(loginEvent);
-            }
-        } else {
+        if (isReg) hasPasswd(msg);
+        else {
             if (vf != null){
                 if (vf.has(msg)){
                     registered();

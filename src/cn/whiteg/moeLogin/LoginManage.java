@@ -17,8 +17,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import static cn.whiteg.moeLogin.Setting.*;
-
 public class LoginManage {
     final public static Map<UUID, PlayerLogin> noLogin = Collections.synchronizedMap(new HashMap<>());
 
@@ -49,17 +47,19 @@ public class LoginManage {
                         //使用在线登录过记录信息
                         if (dc != null){
                             //记录正版认证
-                            if (loginSession.getYggdrasil() == null && !dc.getConfig().getBoolean(successKey,false)){
-                                dc.set(successKey,true);
+                            if (loginSession.getYggdrasil() == null && !dc.getConfig().getBoolean(Setting.successKey,false)){
+                                dc.set(Setting.successKey,true);
                             }
                             //记录验证UUID
                             final GameProfile oloneGameProfile = loginSession.getOnlineGameProfile();
-                            dc.set(uuidKey,oloneGameProfile.getId().toString());
+                            dc.set(Setting.uuidKey,oloneGameProfile.getId().toString());
                         }
                         //标记最近登录时间
                         if (dc != null){
                             dc.set("Player.login_time",System.currentTimeMillis());
                         }
+                        PlayerLoginEvent e = new PlayerLoginEvent(player,PlayerLoginEvent.LoginType.ONLINE);
+                        Bukkit.getPluginManager().callEvent(e);
                         return true;
                     } else {
                         //理论上如果没有完成的话会先被前面的AsyncPlayerPreLoginEvent事件拦下
@@ -81,6 +81,8 @@ public class LoginManage {
                 if (dc != null){
                     dc.set("Player.login_time",System.currentTimeMillis());
                 }
+                PlayerLoginEvent e = new PlayerLoginEvent(player,PlayerLoginEvent.LoginType.OFFLINE_AUTO);
+                Bukkit.getPluginManager().callEvent(e);
                 return true;
             }
         }catch (Exception e){
@@ -93,6 +95,7 @@ public class LoginManage {
         return false;
     }
 
+    //检查IP是否能自动登录
     public static boolean hasAddressLogin(Player player,String addr) {
         if (!Setting.noLoginIp.isEmpty() && Setting.noLoginIp.equals(addr)){
             return true;
@@ -100,11 +103,7 @@ public class LoginManage {
         if (Setting.AUTO_LOGIN){
             DataCon dc = MMOCore.getPlayerData(player);
             String ip = dc.getString("Player.latest_login_ip");
-            if (ip != null && ip.equals(addr)){
-                PlayerLoginEvent e = new PlayerLoginEvent(player);
-                Bukkit.getPluginManager().callEvent(e);
-                return true;
-            }
+            return ip != null && ip.equals(addr);
         }
         return false;
     }
@@ -114,13 +113,13 @@ public class LoginManage {
             return false;
         }
         final String md = PasswordUtils.toMD5(passwd);
-        if (md.equals(dc.getString(passPat))){
+        if (md.equals(dc.getString(Setting.passPat))){
             final String s1 = PasswordUtils.toSha1(passwd);
-            final String cs = dc.getString(sha1Pat,null);
+            final String cs = dc.getString(Setting.sha1Pat,null);
             if (cs != null){
                 return cs.equals(s1);
             }
-            dc.setString(sha1Pat,s1);
+            dc.setString(Setting.sha1Pat,s1);
             return true;
         }
         return false;
