@@ -19,7 +19,7 @@ public class logintype extends CommandInterface {
 
     @Override
     public boolean onCommand(CommandSender sender,Command cmd,String label,String[] args) {
-        if (args.length >= 3){
+        if (sender.hasPermission("whiteg.test") && args.length >= 3){
             String opt = args[0];
             String type = args[1];
             String player = args[2];
