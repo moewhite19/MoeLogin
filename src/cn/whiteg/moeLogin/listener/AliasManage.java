@@ -2,7 +2,6 @@ package cn.whiteg.moeLogin.listener;
 
 import cn.whiteg.mmocore.event.DataConCreateEvent;
 import cn.whiteg.mmocore.event.DataConDeleteEvent;
-import cn.whiteg.mmocore.event.DataConRenameEvent;
 import cn.whiteg.moeLogin.MoeLogin;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;

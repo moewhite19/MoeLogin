@@ -1,6 +1,11 @@
 package cn.whiteg.moeLogin.utils;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 public class IpUtils {
+
+    static Pattern hostPattern = Pattern.compile("^https?://([^/]+)");
 
     //将127.0.0.1形式的IP地址转换成十进制整数，这里没有进行任何错误处理
     public static long ipToLong(String strIp) {
@@ -32,6 +37,16 @@ public class IpUtils {
         //将高24位置0
         sb.append(String.valueOf((longIp & 0x000000FF)));
         return sb.toString();
+    }
+
+    //从URL中提取主机域名
+    public static String getHost(String url) {
+        Matcher matcher = hostPattern.matcher(url);
+        if (matcher.find()){
+            return matcher.group(1);
+        } else {
+            return url;
+        }
     }
 
 }

@@ -8,6 +8,7 @@ import cn.whiteg.mmocore.util.FileMan;
 import cn.whiteg.mmocore.util.NMSUtils;
 import cn.whiteg.moeLogin.MoeLogin;
 import cn.whiteg.moeLogin.Setting;
+import cn.whiteg.moeLogin.utils.logintype.LoginType;
 import cn.whiteg.moepacketapi.MoePacketAPI;
 import cn.whiteg.moepacketapi.PlayerPacketManage;
 import cn.whiteg.moepacketapi.api.event.PacketReceiveEvent;
@@ -59,9 +60,7 @@ public class AuthenticateListener implements Listener {
     private static final ExecutorService authenticatorPool = Executors.newCachedThreadPool((r) -> new Thread(r,"User Authenticator #" + threadId.incrementAndGet()));
 
     //获取玩家GameProfile
-    private static FieldAccessor<GameProfile> gameProfileField;
-
-
+    private static final FieldAccessor<GameProfile> gameProfileField;
     private final byte[] token = new byte[4];
     private final Logger logger;
     //private Map<String, LoginSession> sessionMap = Collections.synchronizedMap(new MapMaker().weakKeys().makeMap());  //弱Key引用
@@ -192,12 +191,7 @@ public class AuthenticateListener implements Listener {
             }
 
 
-            String name;
-            try{
-                name = (String) loginStart_Name.get(packet);
-            }catch (IllegalAccessException e){
-                throw new RuntimeException(e);
-            }
+            String name = start.name();
 
             if (Setting.DEBUG){
                 logger.info("玩家登陆: " + name + "#" + event.getNetworkManage());
@@ -222,12 +216,22 @@ public class AuthenticateListener implements Listener {
                 return;
             }
             GameProfile gameProfile = new GameProfile(MMOCore.getUUID(name),name);
+            final LoginType loginType = MoeLogin.plugin.getLoginType(event.getNetworkManage());
+
+            //检查玩家是否允许使用登录类型
+            DataCon dc = MMOCore.getPlayerData(name);
+            if (!MoeLogin.plugin.canLogin(dc,loginType)){
+                disconnect(event.getNetworkManage(),"§b当前账号已存在\n" +
+                        "§b但是未启用登录方式: §a" + loginType.getName());
+                return;
+            }
+
             //检查玩家是否开启正版登录
-            if (MoeLogin.plugin.isPremium(name)){
+            if (loginType.isOnline()){
                 event.setCancelled(true);
-                logger.info("为玩家发送正版验证请求: " + name);
+                logger.info("为玩家发送" + loginType.getName() + "验证请求: " + name);
                 try{
-                    final LoginSession loginSession = new LoginSession(gameProfile,event.getChannelHandleContext());
+                    final LoginSession loginSession = new LoginSession(gameProfile,event.getChannelHandleContext(),loginType);
                     loginSession.loginStart(start);
                     sessionMap.put(event.getNetworkManage(),loginSession);
                     //为玩家发送加密会话
@@ -246,25 +250,6 @@ public class AuthenticateListener implements Listener {
                     }
                     e.printStackTrace();
                     disconnect(event.getNetworkManage(),msg);
-                }
-                return;
-            }
-
-            //检查玩家是否开启外置登录
-            String yggdrasil = MoeLogin.plugin.getYggdrasil(name);
-            if (yggdrasil != null){
-                String baseUrl = Setting.yggdrasilMap.get(yggdrasil);
-                if (baseUrl != null){
-                    event.setCancelled(true);
-                    logger.info("为玩家发送外置登录会话验证: " + name + ", 外置服务器为: " + yggdrasil);
-                    final LoginSession loginSession = new LoginSession(gameProfile,event.getChannelHandleContext(),yggdrasil,baseUrl);
-                    loginSession.loginStart(start);
-                    sessionMap.put(event.getNetworkManage(),loginSession);
-                    //为玩家发送加密会话
-                    event.getChannel().writeAndFlush(new ClientboundHelloPacket(Setting.serverId,keypair.getPublic().getEncoded(),token,true));
-                } else {
-                    MoeLogin.plugin.setYggdrasil(name,null);
-                    logger.warning("无效外置登录: " + yggdrasil);
                 }
                 return;
             }
@@ -311,10 +296,7 @@ public class AuthenticateListener implements Listener {
                 public void run() {
                     try{
                         ProfileResult profileResult;
-                        if (loginSession.yggdrasil == null)
-                            profileResult = MoeLogin.getMojangAPI().hasJoinedServer(gameProfile,serverId,this.getInetAddress());
-                        else
-                            profileResult = MoeLogin.getMojangAPI().hasJoinedServer(gameProfile,serverId,this.getInetAddress(),loginSession.getYggdrasilUrl());
+                        profileResult = MoeLogin.getMojangAPI().hasJoinedServer(gameProfile,serverId,this.getInetAddress(),loginSession.getYggdrasilUrl());
                         if (profileResult != null){
                             GameProfile onlineProfile = profileResult.profile();
                             loginSession.setOnlineGameProfile(onlineProfile);
@@ -334,8 +316,8 @@ public class AuthenticateListener implements Listener {
                             }
 
                             //检查正版玩家是否重命名
-                            if (loginSession.getYggdrasil() == null){
-                                final String lateName = MoeLogin.plugin.getPremiumPlayerManage().getPlayer(onlineProfile.getId());
+                            if (loginSession.getType().isMojang()){
+                                final String lateName = MoeLogin.plugin.getMojangPlayerManage().getPlayer(onlineProfile.getId());
                                 if (lateName != null){
                                     final String nowName = gameProfile.getName();
                                     if (!lateName.equals(nowName)){
@@ -346,7 +328,6 @@ public class AuthenticateListener implements Listener {
                                         }
                                     }
                                 }
-
                             }
 
 
@@ -459,28 +440,17 @@ public class AuthenticateListener implements Listener {
     }*/
 
     public static class LoginSession {
-        private final String yggdrasil;
-        private final String yggdrasilUrl;
         private final ChannelHandlerContext channelHandleContext;
         GameProfile gameProfile;
         GameProfile onlineGameProfile = null;
         boolean pass = false;
+        private final LoginType type;
 
         //正版登录
-        public LoginSession(GameProfile gameProfile,ChannelHandlerContext channelHandleContext) {
+        public LoginSession(GameProfile gameProfile,ChannelHandlerContext channelHandleContext,LoginType type) {
             this.gameProfile = gameProfile;
             this.channelHandleContext = channelHandleContext;
-            this.yggdrasil = null;
-            this.yggdrasilUrl = null;
-        }
-
-
-        //外置登录
-        public LoginSession(GameProfile gameProfile,ChannelHandlerContext channelHandleContext,String yggdrasil,String yggdrasilUrl) {
-            this.gameProfile = gameProfile;
-            this.channelHandleContext = channelHandleContext;
-            this.yggdrasil = yggdrasil;
-            this.yggdrasilUrl = yggdrasilUrl;
+            this.type = type;
         }
 
         public GameProfile getGameProfile() {
@@ -528,12 +498,12 @@ public class AuthenticateListener implements Listener {
 //            }
         }
 
-        public String getYggdrasil() {
-            return yggdrasil;
+        public LoginType getType() {
+            return type;
         }
 
         public String getYggdrasilUrl() {
-            return yggdrasilUrl;
+            return getType().getYggdrasilUrl();
         }
 
         public void loginStart(ServerboundHelloPacket login) {

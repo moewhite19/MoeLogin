@@ -47,7 +47,7 @@ public class LoginManage {
                         //使用在线登录过记录信息
                         if (dc != null){
                             //记录正版认证
-                            if (loginSession.getYggdrasil() == null && !dc.getConfig().getBoolean(Setting.successKey,false)){
+                            if (loginSession.getType().isMojang() && !dc.getConfig().getBoolean(Setting.successKey,false)){
                                 dc.set(Setting.successKey,true);
                             }
                             //记录验证UUID

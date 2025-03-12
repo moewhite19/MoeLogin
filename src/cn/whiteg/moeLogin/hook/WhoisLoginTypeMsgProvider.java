@@ -13,7 +13,9 @@ public class WhoisLoginTypeMsgProvider extends WhoisMessageProvider {
 
     @Override
     public String getMsg(CommandSender player,DataCon dataCon) {
-        String ygg = MoeLogin.plugin.isPremium(dataCon) ? "正版" : MoeLogin.plugin.getYggdrasil(dataCon);
-        return "§b登录方式:§f " + (ygg != null ? ygg : "离线");
+        if (dataCon.getPlayer() != null){
+            return "§b登录方式:§f " + MoeLogin.plugin.getLoginType(dataCon.getPlayer()).getName();
+        }
+        return null;
     }
 }

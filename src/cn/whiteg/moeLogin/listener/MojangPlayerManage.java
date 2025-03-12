@@ -17,7 +17,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-public class PremiumPlayerManage implements Listener {
+public class MojangPlayerManage implements Listener {
     static int VER = 1;
     static final byte[] HEAD = "MLP".getBytes(StandardCharsets.UTF_8);
     private final File file;
@@ -26,7 +26,7 @@ public class PremiumPlayerManage implements Listener {
 
     private final BiMap<UUID, String> premiumMap = HashBiMap.create(Collections.synchronizedMap(new HashMap<>()));
 
-    public PremiumPlayerManage(File file) {
+    public MojangPlayerManage(File file) {
         this.file = file;
     }
 

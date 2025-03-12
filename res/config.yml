@@ -1,4 +1,4 @@
-ver: 6
+ver: 8
 debug: false
 #保存玩家IP，如果下次进入服务器时IP一致自动登录
 AutoLogin: false
@@ -23,18 +23,21 @@ NewPlayerJoin:
   DisallowPlayer: false
   DisallowMessage: '阁下没有加入白名单'
 
-#正版自动登录
+#在线登录
 Authenticate:
-  enable: false
-  #默认正版登录
-  defaultAuthenticate: false
-  #默认外置登录(去掉注释启用
-  #defaultYggdrasil: 'LittleSkin'
-  #外置登录服务URL
-  Yggdrasil:
-    LittleSkin: 'https://mcskin.littleservice.cn/api/yggdrasil/sessionserver/session/minecraft/'
-    Blessing: 'https://skin.prinzeugen.net/api/yggdrasil/sessionserver/session/minecraft/'
-
+  enable: true
+  #自定义登录顺序从上到下,使用正则匹配式
+  #或者使用外置Yggdrasil登录地址
+  #todo 目前已知这一段如果使用插件更新配置文件的功能后会被转义成成别的,导致正则失效.所以需要手动从默认配置里复制粘贴过来
+  YggdrasilList:
+    - pattern: '^mc\..*'   #mc开头的使用正版登录
+      action: MOJANG
+    - pattern: '^ls\..*'   #ls开头的使用LittleSkin登录
+      action: 'https://mcskin.littleservice.cn/api/yggdrasil/sessionserver/session/minecraft/'
+    - pattern: '^bs\..*'   #bs开头的使用Blessing登录
+      action: 'https://skin.prinzeugen.net/api/yggdrasil/sessionserver/session/minecraft/'
+    - pattern: '.*'          #其他使用离线登录
+      action: OFFLINE
 #使用代理
 HttpProxy:
   Enable: false
@@ -45,7 +48,7 @@ HttpProxy:
 
 #允许跨协议版本号
 ViaVersion:
-  #- 735 #1.16
-  #- 736 #1.16.1
-  #- 751 #1.16.2
-  #- 753 #1.16.3
+#- 735 #1.16
+#- 736 #1.16.1
+#- 751 #1.16.2
+#- 753 #1.16.3

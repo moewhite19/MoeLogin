@@ -111,10 +111,6 @@ public class MojangAPI {
         }
     }
 
-    //正版验证
-    public ProfileResult hasJoinedServer(GameProfile user,String serverId,InetAddress address) throws AuthenticationUnavailableException {
-        return hasJoinedServer(user,serverId,address,MOJANG_BASE_URL);
-    }
 
     //验证玩家会话
     public ProfileResult hasJoinedServer(GameProfile user,String serverId,InetAddress address,String baseUrl) throws AuthenticationUnavailableException {

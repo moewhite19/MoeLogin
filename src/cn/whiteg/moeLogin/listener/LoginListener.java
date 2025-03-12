@@ -25,7 +25,10 @@ import org.bukkit.event.player.*;
 import org.bukkit.event.server.TabCompleteEvent;
 
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Date;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 import static cn.whiteg.moeLogin.LoginManage.*;
 
@@ -36,12 +39,11 @@ public class LoginListener implements Listener {
         //在这里弄个自动保存吧x
         final AliasManage aliasManage = MoeLogin.plugin.getAliasManage();
         if (aliasManage != null) aliasManage.save();
-
         Player player = event.getPlayer();
         DataCon dc = MMOCore.getPlayerData(player);
 
-        if (!dc.isSet(Setting.authPath)){ //如果先前没有设置过认证方式，则设置默认认证方式
-            dc.set(Setting.authPath,Setting.defaultAuthenticate);
+
+        if (!dc.contarins("Player.quit_time")){ //如果先前没有设置过认证方式，则设置默认认证方式
             Utils.sendCommandList(Setting.RegisteredCommands,player);
         }
 
@@ -124,7 +126,7 @@ public class LoginListener implements Listener {
         }
 
         try{
-            if (Setting.authenticate && (MoeLogin.plugin.isPremium(name) || MoeLogin.plugin.getYggdrasil(name) != null)){
+            if (Setting.authenticate && MoeLogin.plugin.getLoginType(event.getHostname()).isOnline()){
                 final Map<Connection, AuthenticateListener.LoginSession> map = MoeLogin.plugin.getAuthenticateListener().getSessionMap();
                 final Set<Map.Entry<Connection, AuthenticateListener.LoginSession>> entries = map.entrySet();
                 hasSession:
@@ -162,9 +164,8 @@ public class LoginListener implements Listener {
             noLogin.remove(uuid);
         }
 
-        //如果玩家不是正版登录，建不能在上次下线位置上线
-        final DataCon dc = MMOCore.getPlayerData(player);
-        if (!MoeLogin.plugin.isPremium(dc) && MoeLogin.plugin.getYggdrasil(dc) == null){
+        //如果不是在线玩家，不能在上次下线位置上线,防止使用指令登录卡无敌
+        if (MoeLogin.plugin.getLoginType(player).isOnline()){
             player.teleport(MoeLogin.plugin.getServer().getWorlds().get(0).getSpawnLocation());
         }
     }
