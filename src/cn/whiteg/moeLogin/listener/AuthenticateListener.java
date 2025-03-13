@@ -194,7 +194,7 @@ public class AuthenticateListener implements Listener {
             String name = start.name();
 
             if (Setting.DEBUG){
-                logger.info("玩家登陆: " + name + "#" + event.getNetworkManage());
+                logger.info("玩家 " + name + " 登录: " + event.getNetworkManage().hostname + " #" + event.getNetworkManage());
             }
 
             //检查别名并替换为玩家真实名字
