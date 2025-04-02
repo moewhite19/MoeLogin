@@ -165,7 +165,7 @@ public class LoginListener implements Listener {
         }
 
         //如果不是在线玩家，不能在上次下线位置上线,防止使用指令登录卡无敌
-        if (MoeLogin.plugin.getLoginType(player).isOnline()){
+        if (!MoeLogin.plugin.getLoginType(player).isOnline()){
             player.teleport(MoeLogin.plugin.getServer().getWorlds().get(0).getSpawnLocation());
         }
     }

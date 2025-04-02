@@ -19,7 +19,7 @@ LoginCommands:
 
 #新玩家加入时
 NewPlayerJoin:
-  #阻止新玩家
+  #阻止新玩家(开启在线登录的情况下没必要启用这个)
   DisallowPlayer: false
   DisallowMessage: '阁下没有加入白名单'
 
@@ -32,6 +32,7 @@ Authenticate:
   YggdrasilList:
     - pattern: '^mc\..*'   #mc开头的使用正版登录
       action: MOJANG
+      default-allow: true          #默认允许
     - pattern: '^ls\..*'   #ls开头的使用LittleSkin登录
       action: 'https://mcskin.littleservice.cn/api/yggdrasil/sessionserver/session/minecraft/'
     - pattern: '^bs\..*'   #bs开头的使用Blessing登录

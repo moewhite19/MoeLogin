@@ -24,6 +24,6 @@ public class WhoisAllowLoginTypeMsgProvider extends WhoisMessageProvider {
                 sb.append("§f").append(entry.getKey()).append("§7,");
             }
         }
-        return sb.substring(0,sb.length() - 2);
+        return sb.substring(0,sb.length() - 3);
     }
 }

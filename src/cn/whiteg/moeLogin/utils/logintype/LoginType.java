@@ -3,14 +3,20 @@ package cn.whiteg.moeLogin.utils.logintype;
 import java.util.regex.Pattern;
 
 public abstract class LoginType {
-    public final static LoginType OFFLINE = new OfflineLogin(Pattern.compile(".*"));
-    public final static LoginType ONLINE = new MojangLogin(Pattern.compile(".*"));
+    public static LoginType OFFLINE = new OfflineLogin(Pattern.compile(".*"));
+    public static LoginType ONLINE = new MojangLogin(Pattern.compile(".*"));
     final Pattern pattern;
     final String name;
+    final boolean defaultAllow;
 
-    protected LoginType(String name,Pattern pattern) {
+    protected LoginType(String name,Pattern pattern,boolean allow) {
         this.pattern = pattern;
         this.name = name;
+        this.defaultAllow = allow;
+    }
+
+    protected LoginType(String name,Pattern pattern) {
+        this(name,pattern,true);
     }
 
     public boolean isMojang() {
@@ -22,7 +28,7 @@ public abstract class LoginType {
     }
 
     public boolean isOnline() {
-        return isMojang() || isYggdrasil();
+        return true;
     }
 
     //Yggdrasil地址
@@ -36,5 +42,9 @@ public abstract class LoginType {
 
     public Pattern getPattern() {
         return pattern;
+    }
+
+    public boolean defaultAllow() {
+        return defaultAllow;
     }
 }

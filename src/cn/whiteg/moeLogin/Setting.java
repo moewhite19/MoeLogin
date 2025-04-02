@@ -147,21 +147,24 @@ public class Setting {
             //noinspection unchecked
             final List<LinkedHashMap<String, Object>> yggdrasilList = (List<LinkedHashMap<String, Object>>) cs.getList("YggdrasilList");
             if (yggdrasilList != null){
-                for (LinkedHashMap section : yggdrasilList) {
+                for (LinkedHashMap<String, Object> section : yggdrasilList) {
                     final String action = section.get("action").toString();
                     final String pattern = section.get("pattern").toString();
+                    final Boolean defaultAllow = (Boolean) section.getOrDefault("default-allow",false);
                     if (action == null || pattern == null) continue;
                     final Pattern compile = Pattern.compile(pattern);
                     if (action.equals("MOJANG")){
-                        final MojangLogin e = new MojangLogin(compile);
+                        final MojangLogin e = new MojangLogin(compile,defaultAllow);
                         loginTypeMap.put(e.getName(),e);
                         Setting.yggdrasilList.add(e);
+                        LoginType.ONLINE = e;
                     } else if (action.equals("OFFLINE")){
-                        final OfflineLogin e = new OfflineLogin(compile);
+                        final OfflineLogin e = new OfflineLogin(compile,defaultAllow);
                         Setting.yggdrasilList.add(e);
                         loginTypeMap.put(e.getName(),e);
+                        LoginType.OFFLINE = e;
                     } else if (action.startsWith("http")){
-                        final YggdrasilLogin e = new YggdrasilLogin(action,compile);
+                        final YggdrasilLogin e = new YggdrasilLogin(action,compile,defaultAllow);
                         Setting.yggdrasilList.add(e);
                         loginTypeMap.put(e.getName(),e);
                     } else {

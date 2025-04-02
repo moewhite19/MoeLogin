@@ -5,8 +5,12 @@ import cn.whiteg.moeLogin.utils.MojangAPI;
 import java.util.regex.Pattern;
 
 public class MojangLogin extends LoginType {
+    public MojangLogin(Pattern pattern,boolean defAllow) {
+        super("Mojang",pattern,defAllow);
+    }
+
     public MojangLogin(Pattern pattern) {
-        super("Mojang",pattern);
+        this(pattern,false);
     }
 
     @Override

@@ -191,45 +191,48 @@ public class AuthenticateListener implements Listener {
             }
 
 
-            String name = start.name();
+            String playerName = start.name();
 
-            if (Setting.DEBUG){
-                logger.info("玩家 " + name + " 登录: " + event.getNetworkManage().hostname + " #" + event.getNetworkManage());
-            }
+            logger.info("玩家 " + playerName + "(" + start.profileId() + ") 登录: " + event.getNetworkManage().hostname + " #" + event.getNetworkManage().getAverageReceivedPackets());
+
 
             //检查别名并替换为玩家真实名字
             var aliasManage = MoeLogin.plugin.getAliasManage();
             if (aliasManage != null){
-                var alias = aliasManage.getPlayer(name);
+                var alias = aliasManage.getPlayer(playerName);
                 if (alias != null){
 
                     event.setPacket(new ServerboundHelloPacket(alias,MMOCore.getUUID(alias))); //将别名替换为当前名字
-                    logger.info("玩家别名登录" + name + "已替换为" + alias + "并且使用离线登录");
+                    logger.info("玩家别名登录" + playerName + "已替换为" + alias + "并且使用离线登录");
 //                    name = alias;
                     return; //都用上别名了，应该不会需要正版验证
                 }
             }
 
             //检查重复登录
-            if (playerList.getPlayerByName(name) != null){
+            if (playerList.getPlayerByName(playerName) != null){
                 disconnect(event.getNetworkManage(),"multiplayer.disconnect.duplicate_login");
                 return;
             }
-            GameProfile gameProfile = new GameProfile(MMOCore.getUUID(name),name);
+            GameProfile gameProfile = new GameProfile(MMOCore.getUUID(playerName),playerName);
             final LoginType loginType = MoeLogin.plugin.getLoginType(event.getNetworkManage());
 
             //检查玩家是否允许使用登录类型
-            DataCon dc = MMOCore.getPlayerData(name);
-            if (!MoeLogin.plugin.canLogin(dc,loginType)){
-                disconnect(event.getNetworkManage(),"§b当前账号已存在\n" +
-                        "§b但是未启用登录方式: §a" + loginType.getName());
+            DataCon dc = MMOCore.getPlayerData(playerName);
+            if (dc != null && dc.isLoaded()){
+                if (!MoeLogin.plugin.canLogin(dc,loginType)){
+                    disconnect(event.getNetworkManage(),"§b当前账号已存在\n" + "§b但是未启用登录方式: §a" + loginType.getName());
+                    return;
+                }
+            } else if (!loginType.defaultAllow()){
+                disconnect(event.getNetworkManage(),Setting.DISALL_MESSAGE);
                 return;
             }
 
             //检查玩家是否开启正版登录
             if (loginType.isOnline()){
                 event.setCancelled(true);
-                logger.info("为玩家发送" + loginType.getName() + "验证请求: " + name);
+                logger.info("为玩家发送" + loginType.getName() + "验证请求: " + playerName);
                 try{
                     final LoginSession loginSession = new LoginSession(gameProfile,event.getChannelHandleContext(),loginType);
                     loginSession.loginStart(start);

@@ -133,7 +133,7 @@ public class MoeLogin extends PluginBase {
         final ConfigurationSection allows = dc.getSection(Setting.allowLoginKey);
         final String name = loginType.getName().replace('.','_');
         if (allows != null){
-            if (allows.getBoolean(name,false)){
+            if (allows.getBoolean(name,loginType.defaultAllow())){
                 return true;
             }
         }
